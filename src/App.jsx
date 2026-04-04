@@ -147,6 +147,160 @@ return(
 );
 }
 
+function AmountRow({label,total,addVal,setAdd,onAdd,mode,color,borderColor,bgColor,editMode,editVal,setEditMode,setEditVal,saveEdit}){
+const isEdit=editMode===mode;
+return(
+<div style={{...card(),border:`1.5px solid ${borderColor||C.border}`,background:bgColor||C.white}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+<div style={{...LBL,marginBottom:0,color:color||C.muted}}>{label}</div>
+{total>0&&!isEdit&&(
+<div style={{display:"flex",alignItems:"center",gap:8}}>
+<span style={{fontSize:15,fontWeight:700,color:color||C.navy}}>{fmt(total)}</span>
+<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer"}}>עריכה</button>
+</div>
+)}
+</div>
+{isEdit?(
+<div>
+<div style={{fontSize:12,color:C.muted,marginBottom:6}}>ערוך סכום כולל</div>
+<div style={{display:"flex",gap:8}}>
+<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()} style={{...INP,flex:1}}/>
+<button onClick={saveEdit} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer"}}>שמור</button>
+<button onClick={()=>setEditMode(null)} style={{background:"#F1F5F9",color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
+</div>
+</div>
+):(
+<div style={{display:"flex",gap:8}}>
+<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="הכנס סכום" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1}}/>
+<button onClick={onAdd} style={{background:bgColor||"#F8FAFC",color:color||C.sub,border:`1.5px solid ${borderColor||C.border}`,borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",fontSize:20}}>+</button>
+</div>
+)}
+</div>
+);
+}
+
+function WeekNav({selWk,data,selDate,goTo}){
+const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
+const wkLabel=selWk.includes(TODAY)?"השבוע הנוכחי":`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
+const canFwd=selWk[6]<TODAY;
+return(
+<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"12px 16px"}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+<button onClick={()=>goTo(shift(selDate,-7))} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
+<span style={{fontSize:13,color:C.sub,fontWeight:600}}>{wkLabel}</span>
+<button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{background:canFwd?"#F1F5F9":"transparent",border:"none",color:canFwd?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:canFwd?"pointer":"default"}}>‹</button>
+</div>
+<div style={{display:"flex",gap:5}}>
+{selWk.map((d,i)=>{
+const wd=data.workDays[d],fut=d>TODAY,act=wd?.isActive,isSel=d===selDate,isTod=d===TODAY;
+return(
+<button key={d} disabled={fut} onClick={()=>goTo(d)}
+style={{flex:1,background:isSel?C.blue:"#F8FAFC",border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
+color:isSel?"#fff":act&&!isSel?C.green:fut?"#CBD5E1":isTod?C.blue:C.sub,
+borderRadius:10,padding:"7px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
+display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+<span>{DAY_HEB[i]}</span>
+<span style={{fontSize:15,fontWeight:800}}>{dateObj(d).getDate()}</span>
+<span style={{width:4,height:4,borderRadius:"50%",background:act&&!isSel?C.green:"transparent"}}/>
+</button>
+);
+})}
+</div>
+<div style={{textAlign:"center",marginTop:10,fontSize:12,color:selDate===TODAY?C.blue:C.muted}}>
+{selDate===TODAY?"📍 היום":dateObj(selDate).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"})}
+</div>
+</div>
+);
+}
+
+function MonthCal({calYear,calMonth,data,selDate,setModalDay,setCalYear,setCalMonth}){
+const grid=getMonthGrid(calYear,calMonth);
+const calMDays=grid.filter(Boolean);
+const cmActive=calMDays.filter(d=>data.workDays[d]?.isActive).length;
+const cmTips=calMDays.reduce((s,d)=>s+(data.workDays[d]?.tips||0),0);
+const cmBonus=calMDays.reduce((s,d)=>s+(data.workDays[d]?.bonus||0),0);
+const cmComm=data.upsells.filter(u=>calMDays.includes(u.date)&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
+const cmTotal=cmActive*BASE+cmTips+cmBonus+cmComm;
+const prevMo=()=>{if(calMonth===0){setCalYear(y=>y-1);setCalMonth(11);}else setCalMonth(m=>m-1);};
+const canNext=calYear<new Date().getFullYear()||(calYear===new Date().getFullYear()&&calMonth<new Date().getMonth());
+const nextMo=()=>{if(!canNext)return;if(calMonth===11){setCalYear(y=>y+1);setCalMonth(0);}else setCalMonth(m=>m+1);};
+return(
+<div style={{...card(),padding:0,overflow:"hidden"}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`1px solid ${C.border}`}}>
+<button onClick={prevMo} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
+<div style={{fontSize:15,fontWeight:700,color:C.navy}}>{MONTH_HEB[calMonth]} {calYear}</div>
+<button onClick={nextMo} style={{background:canNext?"#F1F5F9":"transparent",border:"none",color:canNext?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:canNext?"pointer":"default"}}>‹</button>
+</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"8px 12px 4px"}}>
+{DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:10,color:C.muted,fontWeight:600,padding:"4px 0"}}>{n}</div>)}
+</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"0 12px 12px",gap:3}}>
+{grid.map((d,i)=>{
+if(!d)return<div key={`b${i}`}/>;
+const wd=data.workDays[d],act=wd?.isActive,fut=d>TODAY,isTod=d===TODAY,isSel=d===selDate;
+const ups=data.upsells.filter(u=>u.date===d);
+return(
+<button key={d} onClick={()=>{if(!fut)setModalDay(d);}} disabled={fut}
+style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":"#F8FAFC",
+border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
+borderRadius:10,padding:"6px 2px",cursor:fut?"default":"pointer",
+display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52}}>
+<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?"#CBD5E1":isTod?C.blue:C.navy}}>{dateObj(d).getDate()}</span>
+<div style={{display:"flex",gap:2,justifyContent:"center",flexWrap:"wrap"}}>
+{act&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.8)":C.green}}/>}
+{(wd?.tips||0)>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.amber}}/>}
+{ups.length>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.blue}}/>}
+</div>
+</button>
+);
+})}
+</div>
+<div style={{borderTop:`1px solid ${C.border}`,padding:"12px 16px",background:"#F8FAFC",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+<MStat label="ימי עבודה" val={cmActive} color={C.green}/>
+<MStat label="טיפים" val={fmt(cmTips)} color={C.amber}/>
+<MStat label='סה"כ חודש' val={fmt(cmTotal)} color={C.navy}/>
+</div>
+</div>
+);
+}
+
+function DayModal({modalDay,setModalDay,data,goTo,setTab}){
+if(!modalDay)return null;
+const wd=data.workDays[modalDay]||{};
+const ups=data.upsells.filter(u=>u.date===modalDay);
+const comm=ups.filter(u=>u.status!=="pending").reduce((s,u)=>s+(u.commission||0),0);
+const dayTotal=(wd.isActive?BASE:0)+(wd.tips||0)+(wd.bonus||0)+comm;
+return(
+<div style={{position:"fixed",inset:0,zIndex:200,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+<div onClick={()=>setModalDay(null)} style={{position:"absolute",inset:0,background:"rgba(10,31,68,0.5)"}}/>
+<div style={{position:"relative",background:C.white,borderRadius:"24px 24px 0 0",maxHeight:"80vh",overflowY:"auto"}}>
+<div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}><div style={{width:36,height:4,borderRadius:2,background:C.border}}/></div>
+<div style={{padding:"8px 20px 16px",borderBottom:`1px solid ${C.border}`}}>
+<div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:4}}>{dateObj(modalDay).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div style={{fontSize:28,fontWeight:900,color:C.navy}}>{fmt(dayTotal)}</div>
+<div style={{background:wd.isActive?C.greenBg:"#F1F5F9",border:`1px solid ${wd.isActive?C.greenBdr:C.border}`,borderRadius:20,padding:"4px 12px",fontSize:13,fontWeight:700,color:wd.isActive?C.green:C.muted}}>
+{wd.isActive?"✅ עבדתי":"לא עבדתי"}
+</div>
+</div>
+</div>
+<div style={{padding:"16px 20px 0"}}>
+{wd.isActive&&<DRow label="שכר בסיס" val={fmt(BASE)} color={C.blue}/>}
+{(wd.tips||0)>0&&<DRow label="טיפים" val={fmt(wd.tips)} color={C.amber}/>}
+{(wd.cashFromClients||0)>0&&<DRow label="מזומן לחברה" val={fmt(wd.cashFromClients)}/>}
+{(wd.bonus||0)>0&&<DRow label="בונוס 🎁" val={fmt(wd.bonus)} color={C.purple}/>}
+{comm>0&&<DRow label="עמלות" val={fmt(comm)} color={C.green}/>}
+{!wd.isActive&&ups.length===0&&<div style={{textAlign:"center",color:C.muted,padding:20}}>אין נתונים ליום זה</div>}
+<div style={{display:"flex",gap:8,marginTop:20,marginBottom:24}}>
+<button onClick={()=>{goTo(modalDay);setModalDay(null);setTab("field");}} style={{...BTNP,flex:2,padding:13,fontSize:14}}>עבור ליום זה</button>
+<button onClick={()=>setModalDay(null)} style={{...BTNS,flex:1,padding:13,fontSize:14}}>סגור</button>
+</div>
+</div>
+</div>
+</div>
+);
+}
+
 export default function App() {
 const [session,setSession]=useState(null);
 const [authLoading,setAuthLoading]=useState(true);
@@ -249,72 +403,6 @@ const delUp=async(id)=>{if(!window.confirm("למחוק?"))return;await supabase.
 const pill=(a,col=C.blue)=>({flex:1,background:a?col:"#F8FAFC",border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer"});
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
 
-const AmountRow=({label,total,addVal,setAdd,onAdd,mode,color,borderColor,bgColor})=>{
-const isEdit=editMode===mode;
-return(
-<div style={{...card(),border:`1.5px solid ${borderColor||C.border}`,background:bgColor||C.white}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-<div style={{...LBL,marginBottom:0,color:color||C.muted}}>{label}</div>
-{total>0&&!isEdit&&(
-<div style={{display:"flex",alignItems:"center",gap:8}}>
-<span style={{fontSize:15,fontWeight:700,color:color||C.navy}}>{fmt(total)}</span>
-<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer"}}>עריכה</button>
-</div>
-)}
-</div>
-{isEdit?(
-<div>
-<div style={{fontSize:12,color:C.muted,marginBottom:6}}>ערוך סכום כולל</div>
-<div style={{display:"flex",gap:8}}>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()} style={{...INP,flex:1}}/>
-<button onClick={saveEdit} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer"}}>שמור</button>
-<button onClick={()=>setEditMode(null)} style={{background:"#F1F5F9",color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
-</div>
-</div>
-):(
-<div style={{display:"flex",gap:8}}>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="הכנס סכום" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1}}/>
-<button onClick={onAdd} style={{background:bgColor||"#F8FAFC",color:color||C.sub,border:`1.5px solid ${borderColor||C.border}`,borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",fontSize:20}}>+</button>
-</div>
-)}
-</div>
-);
-};
-
-const WeekNav=()=>{
-const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
-const wkLabel=selWk.includes(TODAY)?"השבוע הנוכחי":`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
-const canFwd=selWk[6]<TODAY;
-return(
-<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"12px 16px"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-<button onClick={()=>goTo(shift(selDate,-7))} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
-<span style={{fontSize:13,color:C.sub,fontWeight:600}}>{wkLabel}</span>
-<button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{background:canFwd?"#F1F5F9":"transparent",border:"none",color:canFwd?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:canFwd?"pointer":"default"}}>‹</button>
-</div>
-<div style={{display:"flex",gap:5}}>
-{selWk.map((d,i)=>{
-const wd=data.workDays[d],fut=d>TODAY,act=wd?.isActive,isSel=d===selDate,isTod=d===TODAY;
-return(
-<button key={d} disabled={fut} onClick={()=>goTo(d)}
-style={{flex:1,background:isSel?C.blue:"#F8FAFC",border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
-color:isSel?"#fff":act&&!isSel?C.green:fut?"#CBD5E1":isTod?C.blue:C.sub,
-borderRadius:10,padding:"7px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
-display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-<span>{DAY_HEB[i]}</span>
-<span style={{fontSize:15,fontWeight:800}}>{dateObj(d).getDate()}</span>
-<span style={{width:4,height:4,borderRadius:"50%",background:act&&!isSel?C.green:"transparent"}}/>
-</button>
-);
-})}
-</div>
-<div style={{textAlign:"center",marginTop:10,fontSize:12,color:selDate===TODAY?C.blue:C.muted}}>
-{selDate===TODAY?"📍 היום":dateObj(selDate).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"})}
-</div>
-</div>
-);
-};
-
 const renderField=()=>(
 <div style={{paddingTop:16,paddingBottom:80}}>
 <div style={{...card(),border:`1.5px solid ${selDay.isActive?C.greenBdr:C.border}`,background:selDay.isActive?C.greenBg:C.white,margin:"0 16px 12px"}}>
@@ -330,9 +418,9 @@ const renderField=()=>(
 </div>
 </div>
 <div style={{margin:"0 16px"}}>
-<AmountRow label="טיפים במזומן" total={selDay.tips||0} addVal={tipIn} setAdd={setTipIn} onAdd={addTip} mode="tip" color={C.amber} borderColor={C.amberBdr} bgColor={C.amberBg}/>
-<AmountRow label="מזומן מלקוחות לחברה" total={selDay.cashFromClients||0} addVal={cashIn} setAdd={setCashIn} onAdd={addCash} mode="cash"/>
-{isTue(selDate)&&<AmountRow label="🎁 בונוס מהחברה" total={selDay.bonus||0} addVal={bonusIn} setAdd={setBonusIn} onAdd={addBonus} mode="bonus" color={C.purple} borderColor={C.purpleBdr} bgColor={C.purpleBg}/>}
+<AmountRow label="טיפים במזומן" total={selDay.tips||0} addVal={tipIn} setAdd={setTipIn} onAdd={addTip} mode="tip" color={C.amber} borderColor={C.amberBdr} bgColor={C.amberBg} editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>
+<AmountRow label="מזומן מלקוחות לחברה" total={selDay.cashFromClients||0} addVal={cashIn} setAdd={setCashIn} onAdd={addCash} mode="cash" editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>
+{isTue(selDate)&&<AmountRow label="🎁 בונוס מהחברה" total={selDay.bonus||0} addVal={bonusIn} setAdd={setBonusIn} onAdd={addBonus} mode="bonus" color={C.purple} borderColor={C.purpleBdr} bgColor={C.purpleBg} editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>}
 </div>
 <div style={{margin:"0 16px 12px"}}>
 {!showForm?(
@@ -381,57 +469,6 @@ const renderField=()=>(
 </div>
 );
 
-const MonthCal=()=>{
-const grid=getMonthGrid(calYear,calMonth);
-const calMDays=grid.filter(Boolean);
-const cmActive=calMDays.filter(d=>data.workDays[d]?.isActive).length;
-const cmTips=calMDays.reduce((s,d)=>s+(data.workDays[d]?.tips||0),0);
-const cmBonus=calMDays.reduce((s,d)=>s+(data.workDays[d]?.bonus||0),0);
-const cmComm=data.upsells.filter(u=>calMDays.includes(u.date)&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
-const cmTotal=cmActive*BASE+cmTips+cmBonus+cmComm;
-const prevMo=()=>{if(calMonth===0){setCalYear(y=>y-1);setCalMonth(11);}else setCalMonth(m=>m-1);};
-const canNext=calYear<new Date().getFullYear()||(calYear===new Date().getFullYear()&&calMonth<new Date().getMonth());
-const nextMo=()=>{if(!canNext)return;if(calMonth===11){setCalYear(y=>y+1);setCalMonth(0);}else setCalMonth(m=>m+1);};
-return(
-<div style={{...card(),padding:0,overflow:"hidden"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`1px solid ${C.border}`}}>
-<button onClick={prevMo} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
-<div style={{fontSize:15,fontWeight:700,color:C.navy}}>{MONTH_HEB[calMonth]} {calYear}</div>
-<button onClick={nextMo} style={{background:canNext?"#F1F5F9":"transparent",border:"none",color:canNext?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:canNext?"pointer":"default"}}>‹</button>
-</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"8px 12px 4px"}}>
-{DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:10,color:C.muted,fontWeight:600,padding:"4px 0"}}>{n}</div>)}
-</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"0 12px 12px",gap:3}}>
-{grid.map((d,i)=>{
-if(!d)return<div key={`b${i}`}/>;
-const wd=data.workDays[d],act=wd?.isActive,fut=d>TODAY,isTod=d===TODAY,isSel=d===selDate;
-const ups=data.upsells.filter(u=>u.date===d);
-return(
-<button key={d} onClick={()=>{if(!fut)setModalDay(d);}} disabled={fut}
-style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":"#F8FAFC",
-border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
-borderRadius:10,padding:"6px 2px",cursor:fut?"default":"pointer",
-display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52}}>
-<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?"#CBD5E1":isTod?C.blue:C.navy}}>{dateObj(d).getDate()}</span>
-<div style={{display:"flex",gap:2,justifyContent:"center",flexWrap:"wrap"}}>
-{act&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.8)":C.green}}/>}
-{(wd?.tips||0)>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.amber}}/>}
-{ups.length>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.blue}}/>}
-</div>
-</button>
-);
-})}
-</div>
-<div style={{borderTop:`1px solid ${C.border}`,padding:"12px 16px",background:"#F8FAFC",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-<MStat label="ימי עבודה" val={cmActive} color={C.green}/>
-<MStat label="טיפים" val={fmt(cmTips)} color={C.amber}/>
-<MStat label='סה"כ חודש' val={fmt(cmTotal)} color={C.navy}/>
-</div>
-</div>
-);
-};
-
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>u.status!=="paid");
 return(
@@ -448,7 +485,7 @@ return(
 {moBonus>0&&<HR label="בונוסים" val={fmt(moBonus)} hi/>}
 </div>
 </div>
-<div style={{margin:"0 16px 12px"}}><MonthCal/></div>
+<div style={{margin:"0 16px 12px"}}><MonthCal calYear={calYear} calMonth={calMonth} data={data} selDate={selDate} setModalDay={setModalDay} setCalYear={setCalYear} setCalMonth={setCalMonth}/></div>
 {allActive.length>0&&(
 <div style={{...card(),margin:"0 16px"}}>
 <label style={LBL}>הגדלות פעילות ({allActive.length})</label>
@@ -517,43 +554,6 @@ return(
 );
 };
 
-const DayModal=()=>{
-if(!modalDay)return null;
-const wd=data.workDays[modalDay]||{};
-const ups=data.upsells.filter(u=>u.date===modalDay);
-const comm=ups.filter(u=>u.status!=="pending").reduce((s,u)=>s+(u.commission||0),0);
-const dayTotal=(wd.isActive?BASE:0)+(wd.tips||0)+(wd.bonus||0)+comm;
-return(
-<div style={{position:"fixed",inset:0,zIndex:200,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-<div onClick={()=>setModalDay(null)} style={{position:"absolute",inset:0,background:"rgba(10,31,68,0.5)"}}/>
-<div style={{position:"relative",background:C.white,borderRadius:"24px 24px 0 0",maxHeight:"80vh",overflowY:"auto"}}>
-<div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}><div style={{width:36,height:4,borderRadius:2,background:C.border}}/></div>
-<div style={{padding:"8px 20px 16px",borderBottom:`1px solid ${C.border}`}}>
-<div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:4}}>{dateObj(modalDay).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<div style={{fontSize:28,fontWeight:900,color:C.navy}}>{fmt(dayTotal)}</div>
-<div style={{background:wd.isActive?C.greenBg:"#F1F5F9",border:`1px solid ${wd.isActive?C.greenBdr:C.border}`,borderRadius:20,padding:"4px 12px",fontSize:13,fontWeight:700,color:wd.isActive?C.green:C.muted}}>
-{wd.isActive?"✅ עבדתי":"לא עבדתי"}
-</div>
-</div>
-</div>
-<div style={{padding:"16px 20px 0"}}>
-{wd.isActive&&<DRow label="שכר בסיס" val={fmt(BASE)} color={C.blue}/>}
-{(wd.tips||0)>0&&<DRow label="טיפים" val={fmt(wd.tips)} color={C.amber}/>}
-{(wd.cashFromClients||0)>0&&<DRow label="מזומן לחברה" val={fmt(wd.cashFromClients)}/>}
-{(wd.bonus||0)>0&&<DRow label="בונוס 🎁" val={fmt(wd.bonus)} color={C.purple}/>}
-{comm>0&&<DRow label="עמלות" val={fmt(comm)} color={C.green}/>}
-{!wd.isActive&&ups.length===0&&<div style={{textAlign:"center",color:C.muted,padding:20}}>אין נתונים ליום זה</div>}
-<div style={{display:"flex",gap:8,marginTop:20,marginBottom:24}}>
-<button onClick={()=>{goTo(modalDay);setModalDay(null);setTab("field");}} style={{...BTNP,flex:2,padding:13,fontSize:14}}>עבור ליום זה</button>
-<button onClick={()=>setModalDay(null)} style={{...BTNS,flex:1,padding:13,fontSize:14}}>סגור</button>
-</div>
-</div>
-</div>
-</div>
-);
-};
-
 if(authLoading)return<div style={{background:C.white,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
 if(!session)return<AuthScreen/>;
 if(loading)return<div style={{background:C.white,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
@@ -572,7 +572,7 @@ return(
 </div>
 </div>
 </div>
-{tab==="field"&&<WeekNav/>}
+{tab==="field"&&<WeekNav selWk={selWk} data={data} selDate={selDate} goTo={goTo}/>}
 {toast&&<div style={{position:"fixed",top:12,left:"50%",transform:"translateX(-50%)",background:C.navy,color:"#fff",borderRadius:20,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast}</div>}
 <div>
 {tab==="field"&&renderField()}
@@ -588,7 +588,7 @@ return(
 </button>
 ))}
 </div>
-<DayModal/>
+<DayModal modalDay={modalDay} setModalDay={setModalDay} data={data} goTo={goTo} setTab={setTab}/>
 </div>
 );
 }
