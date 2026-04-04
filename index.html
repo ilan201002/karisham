@@ -23,12 +23,30 @@
         overscroll-behavior: none;
         touch-action: pan-y;
         margin: 0;
+        padding: 0;
       }
       #root {
         position: fixed;
         inset: 0;
+        height: 100dvh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+      }
+      /* Mobile: full-bleed */
+      .app-shell {
+        min-height: 100dvh;
+      }
+      /* Desktop: centered card with gutter */
+      @media (min-width: 600px) {
+        #root {
+          background: #D0D8E4;
+        }
+        .app-shell {
+          max-width: 500px;
+          margin: 0 auto;
+          box-shadow: 0 0 60px rgba(10,31,68,0.18);
+          min-height: 100dvh;
+        }
       }
     </style>
 

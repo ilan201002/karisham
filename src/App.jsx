@@ -71,7 +71,7 @@ setLoading(false);
 };
 
 return (
-<div style={{background:C.bg,minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
+<div style={{background:C.bg,minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"calc(24px + env(safe-area-inset-top))",paddingBottom:24,paddingLeft:"calc(24px + env(safe-area-inset-left))",paddingRight:"calc(24px + env(safe-area-inset-right))",fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
 <div style={{width:"100%",maxWidth:400}}>
 <div style={{textAlign:"center",marginBottom:32}}>
 <div style={{fontSize:48,marginBottom:8}}>🔧</div>
@@ -554,15 +554,15 @@ return(
 );
 };
 
-if(authLoading)return<div style={{background:C.white,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
+if(authLoading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
 if(!session)return<AuthScreen/>;
-if(loading)return<div style={{background:C.white,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
+if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
 
 const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
 
 return(
-<div style={{background:C.bg,minHeight:"100%",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",maxWidth:500,margin:"0 auto"}}>
-<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px 20px 10px",position:"sticky",top:0,zIndex:100}}>
+<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
+<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,paddingTop:"calc(14px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
 <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:4}}>KARISHAM</div>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{fontSize:20,fontWeight:800,color:C.navy}}>{tab==="field"?"שטח":tab==="summary"?"סיכום":"שלישי"}</div>
@@ -579,7 +579,7 @@ return(
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
+<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"env(safe-area-inset-left)",paddingRight:"env(safe-area-inset-right)"}}>
 {TABS.map(t=>(
 <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:"10px 0 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
 <span style={{fontSize:22}}>{t.icon}</span>
