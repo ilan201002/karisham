@@ -49,6 +49,16 @@
         min-height: 100dvh;
         overflow-x: hidden;
       }
+      /* Bottom-sheet slide-up animation for DayModal */
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+      }
+      .modal-sheet {
+        animation: slideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+        will-change: transform;
+      }
+
       /* Desktop: centered card with gutter */
       @media (min-width: 600px) {
         #root {

@@ -63,7 +63,7 @@ const LBL={fontSize:12,color:C.muted,fontWeight:600,letterSpacing:"0.06em",textT
 const BTNP={background:C.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
 const BTNS={background:C.white,color:C.navy,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:600,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
 const BTNG={background:"none",color:C.muted,border:`1.5px solid ${C.border}`,borderRadius:8,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
-const BTNI=(sz=32)=>({...BTNG,width:sz,height:sz,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sz>36?18:15,lineHeight:1,padding:0});
+const BTNI=(sz=44)=>({...BTNG,width:sz,height:sz,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sz>36?18:15,lineHeight:1,padding:0});
 
 function AuthScreen() {
 const [isLogin,setIsLogin]=useState(true);
@@ -137,7 +137,7 @@ const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
 return(
 <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8}}>
 <div style={{display:"flex",alignItems:"center",gap:12}}>
-<button onClick={tap} style={{background:`${st.c}15`,border:`1.5px solid ${st.c}33`,color:st.c,borderRadius:10,width:40,height:40,fontSize:18,cursor:"pointer",flexShrink:0}}>{st.i}</button>
+<button onClick={tap} style={{background:`${st.c}15`,border:`1.5px solid ${st.c}33`,color:st.c,borderRadius:10,width:44,height:44,fontSize:18,cursor:"pointer",flexShrink:0}}>{st.i}</button>
 <div style={{flex:1,minWidth:0}}>
 <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{u.name||u.address||u.phone||"ללא שם"}</div>
 <div style={{fontSize:12,color:C.muted,marginTop:1}}>{iso?"במקום":"הפניה"}{showDate&&` · ${dateObj(u.date).toLocaleDateString("he-IL")}`}</div>
@@ -147,15 +147,15 @@ return(
 <span style={{fontSize:11,color:st.c,fontWeight:600}}>{st.l}</span>
 </div>
 </div>
-<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:C.disabled,fontSize:18,cursor:"pointer",padding:4}}>🗑</button>
+<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:C.disabled,fontSize:18,cursor:"pointer",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
 </div>
 {isCnf&&(
 <div style={{marginTop:12,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:12}}>
 <div style={{fontSize:13,color:C.green,marginBottom:10,fontWeight:700}}>סכום העסקה הסופי</div>
 <div style={{display:"flex",gap:8}}>
 <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="₪ סכום" value={confirmAmt} onChange={e=>setConfirmAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSubmitCnf()} style={{...INP,flex:1}}/>
-<button onClick={onSubmitCnf} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer"}}>אישור</button>
-<button onClick={onCancelCnf} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
+<button onClick={onSubmitCnf} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",minHeight:44}}>אישור</button>
+<button onClick={onCancelCnf} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer",minHeight:44}}>ביטול</button>
 </div>
 {confirmAmt&&parseFloat(confirmAmt)>0&&<div style={{fontSize:13,color:C.green,marginTop:8}}>עמלה: {fmt2(parseFloat(confirmAmt)*CR)}</div>}
 </div>
@@ -173,7 +173,7 @@ return(
 {total>0&&!isEdit&&(
 <div style={{display:"flex",alignItems:"center",gap:8}}>
 <span style={{fontSize:15,fontWeight:700,color:color||C.navy}}>{fmt(total)}</span>
-<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:C.surfaceAlt,border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer"}}>עריכה</button>
+<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:C.surfaceAlt,border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer",minHeight:44,alignSelf:"center"}}>עריכה</button>
 </div>
 )}
 </div>
@@ -182,14 +182,14 @@ return(
 <div style={{fontSize:12,color:C.muted,marginBottom:6}}>ערוך סכום כולל</div>
 <div style={{display:"flex",gap:8}}>
 <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()} style={{...INP,flex:1}}/>
-<button onClick={saveEdit} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer"}}>שמור</button>
-<button onClick={()=>setEditMode(null)} style={{background:C.surfaceAlt,color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
+<button onClick={saveEdit} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",minHeight:44}}>שמור</button>
+<button onClick={()=>setEditMode(null)} style={{background:C.surfaceAlt,color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer",minHeight:44}}>ביטול</button>
 </div>
 </div>
 ):(
 <div style={{display:"flex",gap:8}}>
 <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="הכנס סכום" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1}}/>
-<button onClick={onAdd} style={{background:bgColor||"#F8FAFC",color:color||C.sub,border:`1.5px solid ${borderColor||C.border}`,borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",fontSize:20}}>+</button>
+<button onClick={onAdd} style={{background:bgColor||"#F8FAFC",color:color||C.sub,border:`1.5px solid ${borderColor||C.border}`,borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",fontSize:20,minHeight:44}}>+</button>
 </div>
 )}
 </div>
@@ -290,7 +290,7 @@ const dayTotal=(wd.isActive?BASE:0)+(wd.tips||0)+(wd.bonus||0)+comm;
 return(
 <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
 <div onClick={()=>setModalDay(null)} style={{position:"absolute",inset:0,background:C.overlay}}/>
-<div style={{position:"relative",background:C.white,borderRadius:"24px 24px 0 0",maxHeight:"80vh",overflowY:"auto"}}>
+<div className="modal-sheet" style={{position:"relative",background:C.white,borderRadius:"24px 24px 0 0",maxHeight:"80vh",overflowY:"auto",overscrollBehavior:"contain"}}>
 <div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}><div style={{width:36,height:4,borderRadius:2,background:C.border}}/></div>
 <div style={{padding:"8px 20px 16px",borderBottom:`1px solid ${C.border}`}}>
 <div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:4}}>{dateObj(modalDay).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
@@ -308,7 +308,8 @@ return(
 {(wd.bonus||0)>0&&<DRow label="בונוס 🎁" val={fmt(wd.bonus)} color={C.purple}/>}
 {comm>0&&<DRow label="עמלות" val={fmt(comm)} color={C.green}/>}
 {!wd.isActive&&ups.length===0&&<div style={{textAlign:"center",color:C.muted,padding:20}}>אין נתונים ליום זה</div>}
-<div style={{display:"flex",gap:8,marginTop:20,marginBottom:24}}>
+<div style={{display:"flex",gap:8,marginTop:20,marginBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
+
 <button onClick={()=>{goTo(modalDay);setModalDay(null);setTab("field");}} style={{...BTNP,flex:2,padding:13,fontSize:14}}>עבור ליום זה</button>
 <button onClick={()=>setModalDay(null)} style={{...BTNS,flex:1,padding:13,fontSize:14}}>סגור</button>
 </div>
@@ -440,7 +441,7 @@ const renderField=()=>(
 ):(
 <button onClick={toggleActive} style={{width:"100%",background:C.white,border:`2px dashed ${C.border}`,borderRadius:20,padding:"28px 20px",boxShadow:"0 2px 12px rgba(10,31,68,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
 <div style={{width:48,height:48,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(27,79,216,0.35)",flexShrink:0}}>
-<span style={{fontSize:20,color:"#fff",marginRight:2}}>▶</span>
+<span style={{fontSize:20,color:"#fff",marginInlineEnd:2}}>▶</span>
 </div>
 <div style={{textAlign:"right"}}>
 <div style={{fontSize:20,fontWeight:900,color:C.navy}}>התחל יום עבודה</div>
@@ -604,7 +605,7 @@ return(
 </div>
 </div>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
-<div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text}}>{chipLabel}</div>
+<div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"55vw"}}>{chipLabel}</div>
 <button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:16,lineHeight:1}}>←</button>
 </div>
 </div>
