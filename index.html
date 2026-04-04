@@ -24,17 +24,30 @@
         touch-action: pan-y;
         margin: 0;
         padding: 0;
+        /* Belt-and-suspenders: block x-axis at root */
+        max-width: 100vw;
       }
       #root {
         position: fixed;
         inset: 0;
         height: 100dvh;
-        overflow-y: auto;
+        overflow-x: hidden;
+        overflow-y: scroll;           /* scroll > auto: iOS needs explicit scroll */
+        overscroll-behavior: none;    /* kills rubber-band in both axes */
+        touch-action: pan-y;
         -webkit-overflow-scrolling: touch;
+        max-width: 100vw;
+      }
+      /* Prevent any child from widening the layout */
+      #root * {
+        max-width: 100%;
+        box-sizing: border-box;
+        touch-action: pan-y;          /* inherited isn't reliable on iOS PWA */
       }
       /* Mobile: full-bleed */
       .app-shell {
         min-height: 100dvh;
+        overflow-x: hidden;
       }
       /* Desktop: centered card with gutter */
       @media (min-width: 600px) {
@@ -54,6 +67,44 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      /* ── Horizontal-swipe lock for iOS PWA ──────────────────────────
+         iOS ignores touch-action CSS on standalone PWAs in many cases.
+         This JS listener is the only reliable gate.
+         Strategy: on touchstart record origin; on touchmove, once the
+         gesture is clearly more horizontal than vertical, preventDefault()
+         for the remainder of that touch sequence.
+      ──────────────────────────────────────────────────────────────── */
+      (function () {
+        var startX = 0, startY = 0, lockH = false, decided = false;
+
+        document.addEventListener('touchstart', function (e) {
+          var t = e.touches[0];
+          startX = t.clientX;
+          startY = t.clientY;
+          lockH  = false;
+          decided = false;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', function (e) {
+          if (decided && !lockH) return;          // decided: vertical — let it scroll
+          var dx = Math.abs(e.touches[0].clientX - startX);
+          var dy = Math.abs(e.touches[0].clientY - startY);
+
+          if (!decided && (dx > 4 || dy > 4)) {  // need 4 px to avoid noise
+            decided = true;
+            lockH = dx > dy;                      // true when horizontal wins
+          }
+
+          if (lockH) {
+            e.preventDefault();                   // block horizontal scroll/overscroll
+          }
+        }, { passive: false });                   // passive:false required for preventDefault
+
+        document.addEventListener('touchend',   function () { lockH = false; decided = false; }, { passive: true });
+        document.addEventListener('touchcancel',function () { lockH = false; decided = false; }, { passive: true });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
