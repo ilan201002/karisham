@@ -563,9 +563,14 @@ const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",lab
 return(
 <div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
 <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,paddingTop:"calc(14px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
-<div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:4}}>KARISHAM</div>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<div style={{fontSize:20,fontWeight:800,color:C.navy}}>{tab==="field"?"שטח":tab==="summary"?"סיכום":"שלישי"}</div>
+<div style={{display:"flex",alignItems:"center",gap:10}}>
+<img src="/apple-touch-icon.png" style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
+<div>
+<div style={{fontSize:16,fontWeight:900,color:C.navy,lineHeight:1.1}}>כרישים בניקיון</div>
+<div style={{fontSize:11,color:C.muted,fontWeight:600,marginTop:1}}>{tab==="field"?"שטח":tab==="summary"?"סיכום":"שלישי"}</div>
+</div>
+</div>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
 <div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text}}>{chipLabel}</div>
 <button onClick={()=>supabase.auth.signOut()} style={{background:"#F1F5F9",border:"none",borderRadius:8,padding:"6px 10px",fontSize:12,color:C.muted,cursor:"pointer"}}>יציאה</button>
