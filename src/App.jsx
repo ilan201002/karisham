@@ -75,7 +75,7 @@ return (
 <div style={{width:"100%",maxWidth:"min(400px, 100% - 48px)"}}>
 <div style={{textAlign:"center",marginBottom:32}}>
 <div style={{fontSize:48,marginBottom:8}}>🔧</div>
-<div style={{fontSize:28,fontWeight:900,color:C.navy}}>כרישם</div>
+<div style={{fontSize:28,fontWeight:900,color:C.navy}}>כרישים בניקיון</div>
 <div style={{fontSize:14,color:C.muted,marginTop:4}}>ניהול שטח מקצועי</div>
 </div>
 <div style={card()}>
