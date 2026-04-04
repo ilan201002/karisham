@@ -588,7 +588,7 @@ return(
 </div>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
 <div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text}}>{chipLabel}</div>
-<button onClick={()=>supabase.auth.signOut()} style={{background:"#F1F5F9",border:"none",borderRadius:8,padding:"6px 10px",fontSize:12,color:C.muted,cursor:"pointer"}}>יציאה</button>
+<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:16,lineHeight:1}}>→</button>
 </div>
 </div>
 </div>
