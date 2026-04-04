@@ -405,17 +405,32 @@ const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:a
 
 const renderField=()=>(
 <div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
-<div style={{...card(),border:`1.5px solid ${selDay.isActive?C.greenBdr:C.border}`,background:selDay.isActive?C.greenBg:C.white,margin:"0 16px 12px"}}>
-<label style={LBL}>נוכחות</label>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div style={{margin:"0 16px 16px"}}>
+{selDay.isActive?(
+<div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"24px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
 <div>
-<div style={{fontSize:17,fontWeight:700,color:selDay.isActive?C.green:C.muted}}>{selDay.isActive?"✅ עבדתי היום":"לא סומן"}</div>
-{selDay.isActive&&<div style={{fontSize:13,color:C.green,marginTop:2}}>{fmt(BASE)} בסיס</div>}
+<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+<div style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff"}}>✓</div>
+<div style={{fontSize:22,fontWeight:900,color:"#fff",letterSpacing:"-0.02em"}}>עבדתי היום</div>
 </div>
-<button onClick={toggleActive} style={{background:selDay.isActive?C.green:"#F1F5F9",color:selDay.isActive?"#fff":C.sub,border:"none",borderRadius:12,padding:"10px 18px",fontWeight:700,cursor:"pointer"}}>
-{selDay.isActive?"✓ בטל":"סמן"}
+<div style={{fontSize:32,fontWeight:900,color:"#fff",letterSpacing:"-0.03em",lineHeight:1}}>{fmt(BASE)}</div>
+<div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginTop:4,fontWeight:600}}>שכר בסיס · לחץ לביטול</div>
+</div>
+<div style={{fontSize:48,opacity:0.25}}>✓</div>
+</div>
+</div>
+):(
+<button onClick={toggleActive} style={{width:"100%",background:C.white,border:`2px dashed ${C.border}`,borderRadius:20,padding:"28px 20px",boxShadow:"0 2px 12px rgba(10,31,68,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
+<div style={{width:48,height:48,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(27,79,216,0.35)",flexShrink:0}}>
+<span style={{fontSize:20,color:"#fff",marginRight:2}}>▶</span>
+</div>
+<div style={{textAlign:"right"}}>
+<div style={{fontSize:20,fontWeight:900,color:C.navy}}>התחל יום עבודה</div>
+<div style={{fontSize:13,color:C.muted,marginTop:2,fontWeight:500}}>{fmt(BASE)} שכר בסיס</div>
+</div>
 </button>
-</div>
+)}
 </div>
 <div style={{margin:"0 16px"}}>
 <AmountRow label="טיפים במזומן" total={selDay.tips||0} addVal={tipIn} setAdd={setTipIn} onAdd={addTip} mode="tip" color={C.amber} borderColor={C.amberBdr} bgColor={C.amberBg} editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>
