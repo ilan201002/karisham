@@ -246,7 +246,7 @@ return(
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`1px solid ${C.border}`}}>
 <button onClick={prevMo} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{fontSize:15,fontWeight:700,color:C.navy}}>{MONTH_HEB[calMonth]} {calYear}</div>
-<button onClick={nextMo} style={{...BTNI(32),background:canNext?C.surfaceAlt:"transparent",border:"none",color:canNext?C.sub:C.disabled,cursor:canNext?"pointer":"default"}}>‹</button>
+<button onClick={nextMo} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub,opacity:canNext?1:0.3,cursor:canNext?"pointer":"default"}}>‹</button>
 </div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"8px 12px 4px"}}>
 {DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:10,color:C.muted,fontWeight:600,padding:"4px 0"}}>{n}</div>)}
@@ -261,7 +261,7 @@ return(
 style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":C.surface,
 border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
 borderRadius:10,padding:"6px 2px",cursor:fut?"default":"pointer",
-display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52}}>
+display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52,opacity:fut?0.25:1}}>
 <span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?C.disabled:isTod?C.blue:C.navy}}>{dateObj(d).getDate()}</span>
 <div style={{display:"flex",gap:2,justifyContent:"center",flexWrap:"wrap"}}>
 {act&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.8)":C.green}}/>}
@@ -605,7 +605,7 @@ return(
 </div>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
 <div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text}}>{chipLabel}</div>
-<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:16,lineHeight:1}}>→</button>
+<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:16,lineHeight:1}}>←</button>
 </div>
 </div>
 </div>
