@@ -404,7 +404,7 @@ const pill=(a,col=C.blue)=>({flex:1,background:a?col:"#F8FAFC",border:`1.5px sol
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:80}}>
+<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
 <div style={{...card(),border:`1.5px solid ${selDay.isActive?C.greenBdr:C.border}`,background:selDay.isActive?C.greenBg:C.white,margin:"0 16px 12px"}}>
 <label style={LBL}>נוכחות</label>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -472,7 +472,7 @@ const renderField=()=>(
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>u.status!=="paid");
 return(
-<div style={{paddingTop:16,paddingBottom:80}}>
+<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
 <div style={{...card(),background:`linear-gradient(135deg,${C.blue},#0A1F44)`,border:"none",margin:"0 16px 12px"}}>
 <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
 סה"כ הכנסות — {MONTH_HEB[selDObj.getMonth()]} {selDObj.getFullYear()}
@@ -500,7 +500,7 @@ const renderTuesday=()=>{
 const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkRangeLabel=`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 return(
-<div style={{paddingTop:16,paddingBottom:80}}>
+<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.sh}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
 <div style={{textAlign:"center"}}>
@@ -561,7 +561,7 @@ if(loading)return<div style={{background:C.white,minHeight:"100vh",display:"flex
 const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
 
 return(
-<div style={{background:C.bg,minHeight:"100vh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",maxWidth:500,margin:"0 auto"}}>
+<div style={{background:C.bg,minHeight:"100%",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",maxWidth:500,margin:"0 auto"}}>
 <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px 20px 10px",position:"sticky",top:0,zIndex:100}}>
 <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:4}}>KARISHAM</div>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -579,7 +579,7 @@ return(
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}}>
+<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
 {TABS.map(t=>(
 <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:"10px 0 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
 <span style={{fontSize:22}}>{t.icon}</span>
