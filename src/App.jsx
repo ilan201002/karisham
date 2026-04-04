@@ -72,7 +72,7 @@ setLoading(false);
 
 return (
 <div style={{background:C.bg,minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"calc(24px + env(safe-area-inset-top))",paddingBottom:24,paddingLeft:"calc(24px + env(safe-area-inset-left))",paddingRight:"calc(24px + env(safe-area-inset-right))",fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
-<div style={{width:"100%",maxWidth:400}}>
+<div style={{width:"100%",maxWidth:"min(400px, 100% - 48px)"}}>
 <div style={{textAlign:"center",marginBottom:32}}>
 <div style={{fontSize:48,marginBottom:8}}>🔧</div>
 <div style={{fontSize:28,fontWeight:900,color:C.navy}}>כרישם</div>
@@ -573,13 +573,13 @@ return(
 </div>
 </div>
 {tab==="field"&&<WeekNav selWk={selWk} data={data} selDate={selDate} goTo={goTo}/>}
-{toast&&<div style={{position:"fixed",top:12,left:"50%",transform:"translateX(-50%)",background:C.navy,color:"#fff",borderRadius:20,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast}</div>}
+{toast&&<div style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",background:C.navy,color:"#fff",borderRadius:20,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast}</div>}
 <div>
 {tab==="field"&&renderField()}
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"env(safe-area-inset-left)",paddingRight:"env(safe-area-inset-right)"}}>
+<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"calc(0px + env(safe-area-inset-bottom))",paddingLeft:"calc(0px + env(safe-area-inset-left))",paddingRight:"calc(0px + env(safe-area-inset-right))"}}>
 {TABS.map(t=>(
 <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:"10px 0 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
 <span style={{fontSize:22}}>{t.icon}</span>
