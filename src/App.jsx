@@ -39,14 +39,31 @@ border:"#E2E8F0", muted:"#8896A4", sub:"#64748B",
 green:"#0D6F4F", greenBg:"#ECFDF5", greenBdr:"#A7F3D0",
 amber:"#B45309", amberBg:"#FFFBEB", amberBdr:"#FDE68A",
 red:"#B91C1C", purple:"#6D28D9", purpleBg:"#FAF5FF", purpleBdr:"#DDD6FE",
-sh:"0 1px 3px rgba(10,31,68,0.08)", shMd:"0 4px 12px rgba(10,31,68,0.12)",
+// Extended palette
+surface:"#F8FAFC", surfaceAlt:"#F1F5F9", disabled:"#CBD5E1", overlay:"rgba(10,31,68,0.5)",
+// Shadow system
+shSm:"0 1px 3px rgba(10,31,68,0.07)",
+shMd:"0 4px 12px rgba(10,31,68,0.10)",
+shLg:"0 12px 32px rgba(10,31,68,0.16)",
+shGreen:"0 6px 20px rgba(13,111,79,0.28)",
+shBlue:"0 4px 14px rgba(27,79,216,0.30)",
+sh:"0 1px 3px rgba(10,31,68,0.07)",
 };
 
-const card=(ex={})=>({background:C.white,border:`1px solid ${C.border}`,borderRadius:16,padding:"16px",marginBottom:12,boxShadow:C.sh,...ex});
-const INP={background:C.white,border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:15,padding:"12px 14px",width:"100%",boxSizing:"border-box",fontFamily:"inherit"};
-const LBL={fontSize:11,color:C.muted,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8,display:"block"};
-const BTNP={background:C.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%"};
-const BTNS={background:C.white,color:C.sub,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:600,cursor:"pointer"};
+// Transition system
+const TRANS={
+btn:"transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease",
+spring:"all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+};
+
+const card=(ex={})=>({background:C.white,border:`1px solid ${C.border}`,borderRadius:16,padding:16,marginBottom:12,boxShadow:C.shSm,...ex});
+const INP={background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,color:C.navy,fontSize:15,padding:"12px 14px",width:"100%",boxSizing:"border-box",fontFamily:"inherit",outline:"none",transition:"border-color 0.15s ease"};
+const LBL={fontSize:12,color:C.muted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8,display:"block"};
+// Button system: primary / secondary / ghost / icon
+const BTNP={background:C.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
+const BTNS={background:C.white,color:C.navy,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:600,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
+const BTNG={background:"none",color:C.muted,border:`1.5px solid ${C.border}`,borderRadius:8,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
+const BTNI=(sz=32)=>({...BTNG,width:sz,height:sz,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sz>36?18:15,lineHeight:1,padding:0});
 
 function AuthScreen() {
 const [isLogin,setIsLogin]=useState(true);
@@ -79,7 +96,7 @@ return (
 <div style={{fontSize:14,color:C.muted,marginTop:4}}>ניהול שטח מקצועי</div>
 </div>
 <div style={card()}>
-<div style={{display:"flex",marginBottom:20,background:"#F1F5F9",borderRadius:10,padding:4}}>
+<div style={{display:"flex",marginBottom:20,background:C.surfaceAlt,borderRadius:10,padding:4}}>
 <button onClick={()=>setIsLogin(true)} style={{flex:1,border:"none",borderRadius:8,padding:"10px",fontWeight:700,fontSize:14,cursor:"pointer",background:isLogin?C.white:"transparent",color:isLogin?C.navy:C.muted,transition:"all 0.2s"}}>התחברות</button>
 <button onClick={()=>setIsLogin(false)} style={{flex:1,border:"none",borderRadius:8,padding:"10px",fontWeight:700,fontSize:14,cursor:"pointer",background:!isLogin?C.white:"transparent",color:!isLogin?C.navy:C.muted,transition:"all 0.2s"}}>הרשמה</button>
 </div>
@@ -118,7 +135,7 @@ if(u.status==="confirmed"){onAdvancePaid(u.id);return;}
 };
 const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
 return(
-<div style={{background:"#F8FAFC",border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8}}>
+<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8}}>
 <div style={{display:"flex",alignItems:"center",gap:12}}>
 <button onClick={tap} style={{background:`${st.c}15`,border:`1.5px solid ${st.c}33`,color:st.c,borderRadius:10,width:40,height:40,fontSize:18,cursor:"pointer",flexShrink:0}}>{st.i}</button>
 <div style={{flex:1,minWidth:0}}>
@@ -130,7 +147,7 @@ return(
 <span style={{fontSize:11,color:st.c,fontWeight:600}}>{st.l}</span>
 </div>
 </div>
-<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:"#CBD5E1",fontSize:18,cursor:"pointer",padding:4}}>🗑</button>
+<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:C.disabled,fontSize:18,cursor:"pointer",padding:4}}>🗑</button>
 </div>
 {isCnf&&(
 <div style={{marginTop:12,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:12}}>
@@ -138,7 +155,7 @@ return(
 <div style={{display:"flex",gap:8}}>
 <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="₪ סכום" value={confirmAmt} onChange={e=>setConfirmAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSubmitCnf()} style={{...INP,flex:1}}/>
 <button onClick={onSubmitCnf} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer"}}>אישור</button>
-<button onClick={onCancelCnf} style={{background:"#F1F5F9",color:C.muted,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
+<button onClick={onCancelCnf} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
 </div>
 {confirmAmt&&parseFloat(confirmAmt)>0&&<div style={{fontSize:13,color:C.green,marginTop:8}}>עמלה: {fmt2(parseFloat(confirmAmt)*CR)}</div>}
 </div>
@@ -156,7 +173,7 @@ return(
 {total>0&&!isEdit&&(
 <div style={{display:"flex",alignItems:"center",gap:8}}>
 <span style={{fontSize:15,fontWeight:700,color:color||C.navy}}>{fmt(total)}</span>
-<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer"}}>עריכה</button>
+<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:C.surfaceAlt,border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer"}}>עריכה</button>
 </div>
 )}
 </div>
@@ -166,7 +183,7 @@ return(
 <div style={{display:"flex",gap:8}}>
 <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()} style={{...INP,flex:1}}/>
 <button onClick={saveEdit} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer"}}>שמור</button>
-<button onClick={()=>setEditMode(null)} style={{background:"#F1F5F9",color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
+<button onClick={()=>setEditMode(null)} style={{background:C.surfaceAlt,color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer"}}>ביטול</button>
 </div>
 </div>
 ):(
@@ -186,17 +203,17 @@ const canFwd=selWk[6]<TODAY;
 return(
 <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"12px 16px"}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-<button onClick={()=>goTo(shift(selDate,-7))} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
+<button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <span style={{fontSize:13,color:C.sub,fontWeight:600}}>{wkLabel}</span>
-<button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{background:canFwd?"#F1F5F9":"transparent",border:"none",color:canFwd?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:canFwd?"pointer":"default"}}>‹</button>
+<button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{...BTNI(32),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.sub:C.disabled,cursor:canFwd?"pointer":"default"}}>‹</button>
 </div>
 <div style={{display:"flex",gap:5}}>
 {selWk.map((d,i)=>{
 const wd=data.workDays[d],fut=d>TODAY,act=wd?.isActive,isSel=d===selDate,isTod=d===TODAY;
 return(
 <button key={d} disabled={fut} onClick={()=>goTo(d)}
-style={{flex:1,background:isSel?C.blue:"#F8FAFC",border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
-color:isSel?"#fff":act&&!isSel?C.green:fut?"#CBD5E1":isTod?C.blue:C.sub,
+style={{flex:1,background:isSel?C.blue:C.surface,border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
+color:isSel?"#fff":act&&!isSel?C.green:fut?C.disabled:isTod?C.blue:C.sub,
 borderRadius:10,padding:"7px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
 display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
 <span>{DAY_HEB[i]}</span>
@@ -227,9 +244,9 @@ const nextMo=()=>{if(!canNext)return;if(calMonth===11){setCalYear(y=>y+1);setCal
 return(
 <div style={{...card(),padding:0,overflow:"hidden"}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`1px solid ${C.border}`}}>
-<button onClick={prevMo} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
+<button onClick={prevMo} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{fontSize:15,fontWeight:700,color:C.navy}}>{MONTH_HEB[calMonth]} {calYear}</div>
-<button onClick={nextMo} style={{background:canNext?"#F1F5F9":"transparent",border:"none",color:canNext?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:canNext?"pointer":"default"}}>‹</button>
+<button onClick={nextMo} style={{...BTNI(32),background:canNext?C.surfaceAlt:"transparent",border:"none",color:canNext?C.sub:C.disabled,cursor:canNext?"pointer":"default"}}>‹</button>
 </div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"8px 12px 4px"}}>
 {DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:10,color:C.muted,fontWeight:600,padding:"4px 0"}}>{n}</div>)}
@@ -241,11 +258,11 @@ const wd=data.workDays[d],act=wd?.isActive,fut=d>TODAY,isTod=d===TODAY,isSel=d==
 const ups=data.upsells.filter(u=>u.date===d);
 return(
 <button key={d} onClick={()=>{if(!fut)setModalDay(d);}} disabled={fut}
-style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":"#F8FAFC",
+style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":C.surface,
 border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
 borderRadius:10,padding:"6px 2px",cursor:fut?"default":"pointer",
 display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52}}>
-<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?"#CBD5E1":isTod?C.blue:C.navy}}>{dateObj(d).getDate()}</span>
+<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?C.disabled:isTod?C.blue:C.navy}}>{dateObj(d).getDate()}</span>
 <div style={{display:"flex",gap:2,justifyContent:"center",flexWrap:"wrap"}}>
 {act&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.8)":C.green}}/>}
 {(wd?.tips||0)>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.amber}}/>}
@@ -255,7 +272,7 @@ display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52}}>
 );
 })}
 </div>
-<div style={{borderTop:`1px solid ${C.border}`,padding:"12px 16px",background:"#F8FAFC",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+<div style={{borderTop:`1px solid ${C.border}`,padding:"12px 16px",background:C.surface,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
 <MStat label="ימי עבודה" val={cmActive} color={C.green}/>
 <MStat label="טיפים" val={fmt(cmTips)} color={C.amber}/>
 <MStat label='סה"כ חודש' val={fmt(cmTotal)} color={C.navy}/>
@@ -272,14 +289,14 @@ const comm=ups.filter(u=>u.status!=="pending").reduce((s,u)=>s+(u.commission||0)
 const dayTotal=(wd.isActive?BASE:0)+(wd.tips||0)+(wd.bonus||0)+comm;
 return(
 <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-<div onClick={()=>setModalDay(null)} style={{position:"absolute",inset:0,background:"rgba(10,31,68,0.5)"}}/>
+<div onClick={()=>setModalDay(null)} style={{position:"absolute",inset:0,background:C.overlay}}/>
 <div style={{position:"relative",background:C.white,borderRadius:"24px 24px 0 0",maxHeight:"80vh",overflowY:"auto"}}>
 <div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}><div style={{width:36,height:4,borderRadius:2,background:C.border}}/></div>
 <div style={{padding:"8px 20px 16px",borderBottom:`1px solid ${C.border}`}}>
 <div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:4}}>{dateObj(modalDay).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{fontSize:28,fontWeight:900,color:C.navy}}>{fmt(dayTotal)}</div>
-<div style={{background:wd.isActive?C.greenBg:"#F1F5F9",border:`1px solid ${wd.isActive?C.greenBdr:C.border}`,borderRadius:20,padding:"4px 12px",fontSize:13,fontWeight:700,color:wd.isActive?C.green:C.muted}}>
+<div style={{background:wd.isActive?C.greenBg:C.surfaceAlt,border:`1px solid ${wd.isActive?C.greenBdr:C.border}`,borderRadius:20,padding:"4px 12px",fontSize:13,fontWeight:700,color:wd.isActive?C.green:C.muted}}>
 {wd.isActive?"✅ עבדתי":"לא עבדתי"}
 </div>
 </div>
@@ -375,7 +392,7 @@ const tuesdayNet=wkCash-pendingComm;
 const pendingRefs=data.upsells.filter(u=>u.type==="referral"&&u.status==="pending");
 const selUpsells=data.upsells.filter(u=>u.date===selDate);
 const chipLabel=tab==="field"?`${wkActive} ימים השבוע · ${fmt(wkTotal)}`:tab==="summary"?`${MONTH_HEB[selDObj.getMonth()]} · ${fmt(moTotal)}`:`שבוע · ${fmt(wkTotal)}`;
-const chipColor=wkActive>0?{bg:C.greenBg,border:C.greenBdr,text:C.green}:{bg:"#F1F5F9",border:C.border,text:C.muted};
+const chipColor=wkActive>0?{bg:C.greenBg,border:C.greenBdr,text:C.green}:{bg:C.surfaceAlt,border:C.border,text:C.muted};
 
 const toggleActive=()=>upsWD(selDate,{...selDay,isActive:!selDay.isActive});
 const addTip=()=>{const v=parseFloat(tipIn)||0;if(!v)return;upsWD(selDate,{...selDay,isActive:true,tips:(selDay.tips||0)+v});setTipIn("");flash("✅ טיפ נוסף");};
@@ -400,7 +417,7 @@ const submitCnf=async()=>{const a=parseFloat(confirmAmt);if(!a||a<=0)return;cons
 const advPaid=async(id)=>{await supabase.from("upsells").update({status:"paid"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid"})}));};
 const delUp=async(id)=>{if(!window.confirm("למחוק?"))return;await supabase.from("upsells").delete().eq("id",id);setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));};
 
-const pill=(a,col=C.blue)=>({flex:1,background:a?col:"#F8FAFC",border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer"});
+const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
 
 const renderField=()=>(
@@ -488,7 +505,7 @@ const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>u.status!=="paid");
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
-<div style={{...card(),background:`linear-gradient(135deg,${C.blue},#0A1F44)`,border:"none",margin:"0 16px 12px"}}>
+<div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
 <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
 סה"כ הכנסות — {MONTH_HEB[selDObj.getMonth()]} {selDObj.getFullYear()}
 </div>
@@ -516,13 +533,13 @@ const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkRangeLabel=`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
-<div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.sh}}>
-<button onClick={()=>goTo(shift(selDate,-7))} style={{background:"#F1F5F9",border:"none",color:C.sub,borderRadius:8,width:32,height:32,fontSize:18,cursor:"pointer"}}>›</button>
+<div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
+<button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{textAlign:"center"}}>
 <div style={{fontSize:12,color:C.muted,fontWeight:600}}>שבוע</div>
 <div style={{fontSize:14,fontWeight:700,color:C.navy}}>{wkRangeLabel}</div>
 </div>
-<button onClick={()=>{if(selWk[6]<TODAY)goTo(shift(selDate,7));}} style={{background:selWk[6]<TODAY?"#F1F5F9":"transparent",border:"none",color:selWk[6]<TODAY?C.sub:"#CBD5E1",borderRadius:8,width:32,height:32,fontSize:18,cursor:selWk[6]<TODAY?"pointer":"default"}}>‹</button>
+<button onClick={()=>{if(selWk[6]<TODAY)goTo(shift(selDate,7));}} style={{...BTNI(32),background:selWk[6]<TODAY?C.surfaceAlt:"transparent",border:"none",color:selWk[6]<TODAY?C.sub:C.disabled,cursor:selWk[6]<TODAY?"pointer":"default"}}>‹</button>
 </div>
 {pendingRefs.length>0&&(
 <div style={{...card(),background:C.amberBg,border:`1px solid ${C.amberBdr}`,margin:"0 16px 12px"}}>
@@ -601,7 +618,7 @@ return(
 </div>
 <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"calc(0px + env(safe-area-inset-bottom))",paddingLeft:"calc(0px + env(safe-area-inset-left))",paddingRight:"calc(0px + env(safe-area-inset-right))"}}>
 {TABS.map(t=>(
-<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:"10px 0 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:"10px 0 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,transition:TRANS.btn,WebkitTapHighlightColor:"transparent"}}>
 <span style={{fontSize:22}}>{t.icon}</span>
 <span style={{fontSize:11,fontWeight:tab===t.id?700:500,color:tab===t.id?C.blue:C.muted}}>{t.label}</span>
 {tab===t.id&&<span style={{width:16,height:2,background:C.blue,borderRadius:1}}/>}
