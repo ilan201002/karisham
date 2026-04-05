@@ -633,8 +633,7 @@ return(
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:0,right:0,height:"env(safe-area-inset-bottom)",background:C.white,zIndex:99}}/>
-<div style={{position:"fixed",bottom:"env(safe-area-inset-bottom)",left:0,right:0,height:49,background:C.white,boxShadow:"0 -1px 0 rgba(0,0,0,0.08)",display:"flex",alignItems:"stretch",zIndex:100}}>
+<div style={{position:"fixed",bottom:0,left:0,right:0,height:"calc(49px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",background:C.white,boxShadow:"0 -1px 0 rgba(0,0,0,0.08)",display:"flex",alignItems:"stretch",zIndex:100,boxSizing:"border-box"}}>
 {TABS.map(t=>{
 const act=tab===t.id;
 return(

@@ -21,8 +21,20 @@
         text-size-adjust: 100%;
       }
 
-      /* Scroll lock: overflow:hidden prevents body scroll without fixed quirks */
-      html, body {
+      /* iOS PWA viewport shift fix: html must be taller than 100% by safe-area-inset-top
+         to compensate for iOS pushing content up behind the status bar */
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: calc(100% + env(safe-area-inset-top));
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100vw;
+      }
+
+      body {
         margin: 0;
         padding: 0;
         width: 100%;
@@ -33,10 +45,10 @@
         max-width: 100vw;
       }
 
-      /* Scroll container: 100dvh ensures true full-screen height */
+      /* Scroll container: compensates for same upward shift */
       #root {
         width: 100%;
-        height: 100dvh;
+        height: calc(100dvh + env(safe-area-inset-top));
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
