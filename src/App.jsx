@@ -57,7 +57,7 @@ spring:"all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
 };
 
 const card=(ex={})=>({background:C.white,border:`1px solid ${C.border}`,borderRadius:16,padding:16,marginBottom:12,boxShadow:C.shSm,...ex});
-const INP={background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,color:C.navy,fontSize:15,padding:"12px 14px",width:"100%",boxSizing:"border-box",fontFamily:"inherit",outline:"none",transition:"border-color 0.15s ease"};
+const INP={background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,color:C.navy,fontSize:16,padding:"12px 14px",width:"100%",boxSizing:"border-box",fontFamily:"inherit",outline:"none",transition:"border-color 0.15s ease"};
 const LBL={fontSize:12,color:C.muted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8,display:"block"};
 // Button system: primary / secondary / ghost / icon
 const BTNP={background:C.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
@@ -363,6 +363,13 @@ setLoading(false);
 load();
 },[session]);
 
+useEffect(()=>{
+if(!window.visualViewport)return;
+const handleResize=()=>{window.scrollTo(0,0);document.documentElement.style.height="100%";setTimeout(()=>{document.documentElement.style.height="";},50);};
+window.visualViewport.addEventListener("resize",handleResize);
+return()=>window.visualViewport.removeEventListener("resize",handleResize);
+},[]);
+
 const flash=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2000);};
 const goTo=useCallback((d)=>{setSelDate(d);setShowForm(false);setEditMode(null);setTipIn("");setCashIn("");setBonusIn("");},[]);
 
@@ -594,7 +601,7 @@ if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"fle
 const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
 
 return(
-<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none"}}>
+<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none",WebkitTextSizeAdjust:"100%"}}>
 <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,paddingTop:"calc(14px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{display:"flex",alignItems:"center",gap:10}}>
