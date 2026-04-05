@@ -617,14 +617,18 @@ return(
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"calc(0px + env(safe-area-inset-bottom))",paddingLeft:"calc(0px + env(safe-area-inset-left))",paddingRight:"calc(0px + env(safe-area-inset-right))"}}>
-{TABS.map(t=>(
-<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:"10px 0 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,transition:TRANS.btn,WebkitTapHighlightColor:"transparent"}}>
-<span style={{fontSize:22}}>{t.icon}</span>
-<span style={{fontSize:11,fontWeight:tab===t.id?700:500,color:tab===t.id?C.blue:C.muted}}>{t.label}</span>
-{tab===t.id&&<span style={{width:16,height:2,background:C.blue,borderRadius:1}}/>}
+<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,boxShadow:"0 -4px 20px rgba(10,31,68,0.12)",display:"flex",alignItems:"center",zIndex:100,height:"calc(64px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"calc(8px + env(safe-area-inset-left))",paddingRight:"calc(8px + env(safe-area-inset-right))"}}>
+{TABS.map(t=>{
+const act=tab===t.id;
+return(
+<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",transition:TRANS.btn}}>
+<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:act?C.blue:"transparent",borderRadius:16,padding:act?"8px 20px":"8px 14px",transition:"background 0.18s ease, padding 0.18s ease"}}>
+<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>
+<span style={{fontSize:11,fontWeight:act?700:500,color:act?"#fff":C.muted,letterSpacing:act?"0.01em":0}}>{t.label}</span>
+</div>
 </button>
-))}
+);
+})}
 </div>
 <DayModal modalDay={modalDay} setModalDay={setModalDay} data={data} goTo={goTo} setTab={setTab}/>
 </div>
