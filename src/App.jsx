@@ -438,7 +438,7 @@ const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px sol
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:"calc(50px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(42px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px"}}>
 {selDay.isActive?(
 <div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"16px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
@@ -521,7 +521,7 @@ const renderField=()=>(
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>u.status!=="paid");
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(50px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(42px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
 <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
 סה"כ הכנסות — {MONTH_HEB[selDObj.getMonth()]} {selDObj.getFullYear()}
@@ -549,7 +549,7 @@ const renderTuesday=()=>{
 const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkRangeLabel=`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(50px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(42px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{textAlign:"center"}}>
@@ -634,11 +634,11 @@ return(
 {tab==="tuesday"&&renderTuesday()}
 </div>
 <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,boxShadow:"0 -2px 12px rgba(10,31,68,0.08)",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"env(safe-area-inset-left)",paddingRight:"env(safe-area-inset-right)",boxSizing:"border-box"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-around",height:42}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-around",height:34}}>
 {TABS.map(t=>{
 const act=tab===t.id;
 return(
-<button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",padding:"4px 16px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,WebkitTapHighlightColor:"transparent",minHeight:42,justifyContent:"center"}}>
+<button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",padding:"2px 16px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,WebkitTapHighlightColor:"transparent",minHeight:34,justifyContent:"flex-end",paddingBottom:4}}>
 <span style={{fontSize:18,lineHeight:1,opacity:act?1:0.45}}>{t.icon}</span>
 {act&&<span style={{fontSize:9,fontWeight:700,color:C.blue,lineHeight:1}}>{t.label}</span>}
 </button>
