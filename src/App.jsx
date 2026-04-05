@@ -422,7 +422,7 @@ const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px sol
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
+<div style={{flex:1,paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px"}}>
 {selDay.isActive?(
 <div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"16px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
@@ -505,7 +505,7 @@ const renderField=()=>(
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>u.status!=="paid");
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
+<div style={{flex:1,paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
 <div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
 <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
 סה"כ הכנסות — {MONTH_HEB[selDObj.getMonth()]} {selDObj.getFullYear()}
@@ -533,7 +533,7 @@ const renderTuesday=()=>{
 const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkRangeLabel=`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
+<div style={{flex:1,paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{textAlign:"center"}}>
@@ -594,7 +594,7 @@ if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"fle
 const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
 
 return(
-<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none"}}>
+<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",display:"flex",flexDirection:"column",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none"}}>
 <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,paddingTop:"calc(14px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -612,7 +612,7 @@ return(
 </div>
 {tab==="field"&&<WeekNav selWk={selWk} data={data} selDate={selDate} goTo={goTo}/>}
 {toast&&<div style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",background:C.navy,color:"#fff",borderRadius:20,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast}</div>}
-<div>
+<div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
 {tab==="field"&&renderField()}
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
