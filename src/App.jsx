@@ -365,9 +365,18 @@ load();
 
 useEffect(()=>{
 if(!window.visualViewport)return;
-const handleResize=()=>{window.scrollTo(0,0);document.documentElement.style.height="100%";setTimeout(()=>{document.documentElement.style.height="";},50);};
-window.visualViewport.addEventListener("resize",handleResize);
-return()=>window.visualViewport.removeEventListener("resize",handleResize);
+const onViewportResize=()=>{
+const vv=window.visualViewport;
+if(vv.height>=window.innerHeight*0.85){
+window.scrollTo(0,0);
+document.documentElement.scrollTop=0;
+document.body.scrollTop=0;
+const root=document.getElementById("root");
+if(root)root.scrollTop=Math.max(0,root.scrollTop);
+}
+};
+window.visualViewport.addEventListener("resize",onViewportResize);
+return()=>window.visualViewport.removeEventListener("resize",onViewportResize);
 },[]);
 
 const flash=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2000);};
@@ -624,7 +633,7 @@ return(
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,boxShadow:"0 -4px 20px rgba(10,31,68,0.12)",display:"flex",alignItems:"center",zIndex:100,height:"calc(46px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"calc(4px + env(safe-area-inset-left))",paddingRight:"calc(4px + env(safe-area-inset-right))"}}>
+<div style={{position:"fixed",bottom:0,left:0,right:0,width:"100%",background:C.white,boxShadow:"0 -4px 20px rgba(10,31,68,0.12)",display:"flex",alignItems:"center",zIndex:100,height:"calc(46px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"env(safe-area-inset-left)",paddingRight:"env(safe-area-inset-right)",boxSizing:"border-box"}}>
 {TABS.map(t=>{
 const act=tab===t.id;
 return(

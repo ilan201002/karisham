@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
@@ -15,39 +15,55 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <style>
+      /* Anti-zoom: block all text size auto-adjustment */
+      *, *::before, *::after {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      /* Scroll lock: body is the fixed viewport container */
       html, body {
         margin: 0;
         padding: 0;
+        position: fixed;
         width: 100%;
         height: 100%;
         overflow: hidden;
         overscroll-behavior: none;
-        touch-action: pan-y;
-        /* Belt-and-suspenders: block x-axis at root */
-        max-width: 100vw;
-      }
-      #root {
-        position: fixed;
-        inset: 0;
-        height: 100dvh;
-        overflow-x: hidden;
-        overflow-y: scroll;           /* scroll > auto: iOS needs explicit scroll */
-        overscroll-behavior: none;    /* kills rubber-band in both axes */
-        touch-action: pan-y;
         -webkit-overflow-scrolling: touch;
         max-width: 100vw;
       }
-      /* Prevent any child from widening the layout */
+
+      /* Scroll container: fills body, scrolls vertically */
+      #root {
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+      }
+
+      /* Force 16px on all form fields — kills iOS auto-zoom */
+      input, select, textarea {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100%;
+        touch-action: manipulation;
+      }
+
+      /* Prevent double-tap zoom + constrain children */
       #root * {
         max-width: 100%;
         box-sizing: border-box;
-        touch-action: pan-y;          /* inherited isn't reliable on iOS PWA */
+        touch-action: manipulation;
       }
+
       /* Mobile: full-bleed */
       .app-shell {
         min-height: 100dvh;
         overflow-x: hidden;
       }
+
       /* Bottom-sheet slide-up animation for DayModal */
       @keyframes slideUp {
         from { transform: translateY(100%); }
