@@ -422,7 +422,7 @@ const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px sol
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:"calc(68px + env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 16px"}}>
 {selDay.isActive?(
 <div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"24px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
@@ -505,7 +505,7 @@ const renderField=()=>(
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>u.status!=="paid");
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(68px + env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
 <div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
 <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
 סה"כ הכנסות — {MONTH_HEB[selDObj.getMonth()]} {selDObj.getFullYear()}
@@ -533,7 +533,7 @@ const renderTuesday=()=>{
 const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkRangeLabel=`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(68px + env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{textAlign:"center"}}>
@@ -594,7 +594,7 @@ if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"fle
 const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
 
 return(
-<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
+<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none"}}>
 <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,paddingTop:"calc(14px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -617,14 +617,14 @@ return(
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,boxShadow:"0 -4px 20px rgba(10,31,68,0.12)",display:"flex",alignItems:"center",zIndex:100,height:"calc(52px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"calc(4px + env(safe-area-inset-left))",paddingRight:"calc(4px + env(safe-area-inset-right))"}}>
+<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:500,background:C.white,boxShadow:"0 -4px 20px rgba(10,31,68,0.12)",display:"flex",alignItems:"center",zIndex:100,height:"calc(46px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",paddingLeft:"calc(4px + env(safe-area-inset-left))",paddingRight:"calc(4px + env(safe-area-inset-right))"}}>
 {TABS.map(t=>{
 const act=tab===t.id;
 return(
-<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",minHeight:44}}>
-<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:act?`${C.blue}14`:"transparent",borderRadius:12,padding:act?"4px 16px":"4px 12px",transition:"background 0.15s ease"}}>
-<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>
-{act&&<span style={{fontSize:10,fontWeight:700,color:C.blue,letterSpacing:"0.02em"}}>{t.label}</span>}
+<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",padding:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",minHeight:40}}>
+<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,background:act?`${C.blue}14`:"transparent",borderRadius:10,padding:act?"3px 14px":"3px 10px",transition:"background 0.15s ease"}}>
+<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>
+{act&&<span style={{fontSize:9,fontWeight:700,color:C.blue,letterSpacing:"0.02em"}}>{t.label}</span>}
 </div>
 </button>
 );
