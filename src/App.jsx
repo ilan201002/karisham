@@ -167,7 +167,7 @@ return(
 function AmountRow({label,total,addVal,setAdd,onAdd,mode,color,borderColor,bgColor,editMode,editVal,setEditMode,setEditVal,saveEdit}){
 const isEdit=editMode===mode;
 return(
-<div style={{...card(),border:`1.5px solid ${borderColor||C.border}`,background:bgColor||C.white}}>
+<div style={{...card(),padding:12,border:`1.5px solid ${borderColor||C.border}`,background:bgColor||C.white}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
 <div style={{...LBL,marginBottom:0,color:color||C.muted}}>{label}</div>
 {total>0&&!isEdit&&(
@@ -201,8 +201,8 @@ const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkLabel=selWk.includes(TODAY)?"השבוע הנוכחי":`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 const canFwd=selWk[6]<TODAY;
 return(
-<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"12px 16px"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"8px 16px"}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <span style={{fontSize:13,color:C.sub,fontWeight:600}}>{wkLabel}</span>
 <button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{...BTNI(32),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.sub:C.disabled,cursor:canFwd?"pointer":"default"}}>‹</button>
@@ -214,7 +214,7 @@ return(
 <button key={d} disabled={fut} onClick={()=>goTo(d)}
 style={{flex:1,background:isSel?C.blue:C.surface,border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
 color:isSel?"#fff":act&&!isSel?C.green:fut?C.disabled:isTod?C.blue:C.sub,
-borderRadius:10,padding:"7px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
+borderRadius:10,padding:"5px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
 display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
 <span>{DAY_HEB[i]}</span>
 <span style={{fontSize:15,fontWeight:800}}>{dateObj(d).getDate()}</span>
@@ -223,7 +223,7 @@ display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
 );
 })}
 </div>
-<div style={{textAlign:"center",marginTop:10,fontSize:12,color:selDate===TODAY?C.blue:C.muted}}>
+<div style={{textAlign:"center",marginTop:6,fontSize:12,color:selDate===TODAY?C.blue:C.muted}}>
 {selDate===TODAY?"📍 היום":dateObj(selDate).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"})}
 </div>
 </div>
@@ -423,9 +423,9 @@ const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:a
 
 const renderField=()=>(
 <div style={{paddingTop:16,paddingBottom:"calc(54px + env(safe-area-inset-bottom))"}}>
-<div style={{margin:"0 16px 16px"}}>
+<div style={{margin:"0 16px 12px"}}>
 {selDay.isActive?(
-<div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"24px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
+<div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"16px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
 <div>
 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
@@ -439,7 +439,7 @@ const renderField=()=>(
 </div>
 </div>
 ):(
-<button onClick={toggleActive} style={{width:"100%",background:C.white,border:`2px dashed ${C.border}`,borderRadius:20,padding:"28px 20px",boxShadow:"0 2px 12px rgba(10,31,68,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
+<button onClick={toggleActive} style={{width:"100%",background:C.white,border:`2px dashed ${C.border}`,borderRadius:20,padding:"20px 20px",boxShadow:"0 2px 12px rgba(10,31,68,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
 <div style={{width:48,height:48,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(27,79,216,0.35)",flexShrink:0}}>
 <span style={{fontSize:20,color:"#fff",marginInlineEnd:2}}>▶</span>
 </div>
