@@ -13,7 +13,7 @@
     # Content Security Policy
     # - style-src needs 'unsafe-inline' because App.jsx uses inline JS style objects
     # - connect-src allows Supabase REST + realtime WebSocket
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xhouuigwhjwsmttdpudl.supabase.co wss://xhouuigwhjwsmttdpudl.supabase.co; img-src 'self' data: blob:; font-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xhouuigwhjwsmttdpudl.supabase.co wss://xhouuigwhjwsmttdpudl.supabase.co; img-src 'self' data: blob:; font-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self';"
 
     # Disable browser features this app doesn't use
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
