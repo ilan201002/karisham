@@ -65,7 +65,53 @@ const BTNS={background:C.white,color:C.navy,border:`1.5px solid ${C.border}`,bor
 const BTNG={background:"none",color:C.muted,border:`1.5px solid ${C.border}`,borderRadius:8,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
 const BTNI=(sz=44)=>({...BTNG,width:sz,height:sz,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sz>36?18:15,lineHeight:1,padding:0});
 
-function AuthScreen() {
+function PrivacyModal({onClose}){
+return(
+<div style={{position:"fixed",inset:0,background:C.overlay,zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+<div onClick={e=>e.stopPropagation()} style={{background:C.white,width:"100%",maxHeight:"85dvh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column"}}>
+<div style={{padding:"16px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+<div style={{fontSize:16,fontWeight:800,color:C.navy}}>מדיניות פרטיות</div>
+<button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.muted,lineHeight:1,padding:0,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+</div>
+<div style={{padding:"20px",overflowY:"auto",flex:1,fontSize:14,lineHeight:1.8,color:C.navy,direction:"rtl"}}>
+<p style={{margin:"0 0 16px",color:C.muted,fontSize:12}}>עדכון אחרון: אפריל 2026</p>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>1. מי אחראי על המידע</h3>
+<p style={{margin:"0 0 16px"}}>האפליקציה מופעלת לניהול ימי עבודה ועמלות עבור עובדי כרישים בניקיון.</p>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>2. מה אנחנו אוספים</h3>
+<ul style={{margin:"0 0 16px",paddingRight:20}}>
+<li><strong>פרטי חשבון:</strong> כתובת אימייל וסיסמה מוצפנת לצורך התחברות.</li>
+<li><strong>נתוני עבודה:</strong> תאריכים, טיפים, מזומן מלקוחות ובונוסים — כפי שאתה מזין.</li>
+<li><strong>נתוני מכירות:</strong> שם, סוג, כתובת, טלפון, סכום ועמלה של כל אפסייל או הפניה.</li>
+</ul>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>3. למה אנחנו אוספים</h3>
+<p style={{margin:"0 0 16px"}}>המידע משמש אך ורק לניהול השכר האישי שלך ולהצגת נתוני העבודה. אין שימוש פרסומי.</p>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>4. אחסון ואבטחה</h3>
+<p style={{margin:"0 0 16px"}}>המידע מאוחסן בשירות Supabase (supabase.com) על שרתים באיחוד האירופי, מוגנים בהצפנה.</p>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>5. עוגיות (Cookies)</h3>
+<p style={{margin:"0 0 16px"}}>האפליקציה משתמשת בעוגיית הזדהות של Supabase כדי לשמור על החיבור שלך. לא נעשה שימוש בעוגיות פרסומיות.</p>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>6. זכויות שלך</h3>
+<p style={{margin:"0 0 16px"}}>יש לך זכות לעיין במידע, לתקן אותו, או לבקש מחיקת החשבון — בפנייה ישירה למנהל המערכת.</p>
+<h3 style={{fontSize:14,fontWeight:800,color:C.navy,margin:"0 0 8px"}}>7. יצירת קשר</h3>
+<p style={{margin:"0 0 24px"}}>לשאלות בנושא פרטיות — פנה למנהל המערכת.</p>
+</div>
+</div>
+</div>
+);
+}
+
+function CookieBanner({onAccept,onOpenPrivacy}){
+return(
+<div style={{position:"fixed",bottom:0,left:0,right:0,background:C.navy,color:"#fff",padding:"14px 16px",paddingBottom:"calc(14px + env(safe-area-inset-bottom))",zIndex:150,direction:"rtl",display:"flex",flexDirection:"column",gap:10}}>
+<div style={{fontSize:13,lineHeight:1.6}}>
+האפליקציה משתמשת בעוגיות הזדהות כדי לשמור אותך מחובר.
+{" "}<button onClick={onOpenPrivacy} style={{background:"none",border:"none",color:"#93C5FD",fontSize:13,cursor:"pointer",padding:0,textDecoration:"underline",fontFamily:"inherit"}}>מדיניות פרטיות</button>
+</div>
+<button onClick={onAccept} style={{background:C.blue,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:"pointer",alignSelf:"flex-start",fontFamily:"inherit"}}>הבנתי, אישור</button>
+</div>
+);
+}
+
+function AuthScreen({onPrivacy}) {
 const [isLogin,setIsLogin]=useState(true);
 const [email,setEmail]=useState("");
 const [password,setPassword]=useState("");
@@ -113,6 +159,9 @@ return (
 <button onClick={handle} disabled={loading} style={{...BTNP,opacity:loading?0.7:1}}>
 {loading?"טוען...":isLogin?"התחבר":"הירשם"}
 </button>
+</div>
+<div style={{textAlign:"center",marginTop:20}}>
+<button onClick={onPrivacy} style={{background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer",textDecoration:"underline",fontFamily:"inherit"}}>מדיניות פרטיות</button>
 </div>
 </div>
 </div>
@@ -339,6 +388,9 @@ const [toast,setToast]=useState("");
 const [confirmId,setConfirmId]=useState(null);
 const [confirmAmt,setConfirmAmt]=useState("");
 const [modalDay,setModalDay]=useState(null);
+const [showPrivacy,setShowPrivacy]=useState(false);
+const [cookieConsent,setCookieConsent]=useState(()=>!!localStorage.getItem("cookieConsent"));
+const acceptCookies=()=>{localStorage.setItem("cookieConsent","1");setCookieConsent(true);};
 
 useEffect(()=>{
 supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setAuthLoading(false);});
@@ -603,8 +655,13 @@ return(
 );
 };
 
+const overlays=(<>
+{!cookieConsent&&<CookieBanner onAccept={acceptCookies} onOpenPrivacy={()=>setShowPrivacy(true)}/>}
+{showPrivacy&&<PrivacyModal onClose={()=>setShowPrivacy(false)}/>}
+</>);
+
 if(authLoading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
-if(!session)return<AuthScreen/>;
+if(!session)return<>{<AuthScreen onPrivacy={()=>setShowPrivacy(true)}/>}{overlays}</>;
 if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
 
 const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
@@ -645,6 +702,7 @@ return(
 })}
 </div>
 <DayModal modalDay={modalDay} setModalDay={setModalDay} data={data} goTo={goTo} setTab={setTab}/>
+{overlays}
 </div>
 );
 }

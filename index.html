@@ -103,51 +103,8 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      /* ── Horizontal-swipe lock for iOS PWA ──────────────────────────
-         iOS ignores touch-action CSS on standalone PWAs in many cases.
-         This JS listener is the only reliable gate.
-         Strategy: on touchstart record origin; on touchmove, once the
-         gesture is clearly more horizontal than vertical, preventDefault()
-         for the remainder of that touch sequence.
-      ──────────────────────────────────────────────────────────────── */
-      (function () {
-        var startX = 0, startY = 0, lockH = false, decided = false;
-
-        document.addEventListener('touchstart', function (e) {
-          var t = e.touches[0];
-          startX = t.clientX;
-          startY = t.clientY;
-          lockH  = false;
-          decided = false;
-        }, { passive: true });
-
-        document.addEventListener('touchmove', function (e) {
-          if (decided && !lockH) return;          // decided: vertical — let it scroll
-          var dx = Math.abs(e.touches[0].clientX - startX);
-          var dy = Math.abs(e.touches[0].clientY - startY);
-
-          if (!decided && (dx > 4 || dy > 4)) {  // need 4 px to avoid noise
-            decided = true;
-            lockH = dx > dy;                      // true when horizontal wins
-          }
-
-          if (lockH) {
-            e.preventDefault();                   // block horizontal scroll/overscroll
-          }
-        }, { passive: false });                   // passive:false required for preventDefault
-
-        document.addEventListener('touchend',   function () { lockH = false; decided = false; }, { passive: true });
-        document.addEventListener('touchcancel',function () { lockH = false; decided = false; }, { passive: true });
-      })();
-    </script>
+    <script src="/touch-lock.js"></script>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
-        });
-      }
-    </script>
+    <script src="/register-sw.js"></script>
   </body>
 </html>
