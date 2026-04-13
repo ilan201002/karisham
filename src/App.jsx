@@ -17,6 +17,18 @@ const isTue = (d) => new Date(d+"T12:00:00").getDay()===2;
 const dateObj = (d) => new Date(d+"T12:00:00");
 const shift = (d,days) => { const o=dateObj(d); o.setDate(o.getDate()+days); return ds(o); };
 
+// P0-1: מחזור שלישי–שני (מחזור מסירת מזומן)
+function getDeliveryTuesdayOf(dateStr) {
+  const d=dateObj(dateStr), day=d.getDay();
+  if(day===2) return dateStr;
+  const daysUntilTue=(2-day+7)%7||7;
+  return shift(dateStr,daysUntilTue);
+}
+function getDeliveryCycle(deliveryTuesdayStr) {
+  // 7 ימים לפני יום המסירה: [שלישי קודם .. שני]
+  return Array.from({length:7},(_,i)=>shift(deliveryTuesdayStr,i-7));
+}
+
 function getWeekOf(dateStr) {
 const d=dateObj(dateStr), sun=new Date(d);
 sun.setDate(d.getDate()-d.getDay());
@@ -30,8 +42,8 @@ for(let d=1;d<=last.getDate();d++) cells.push(ds(new Date(year,month,d)));
 return cells;
 }
 
-const ST_ON = { pending:{l:"ממתין",i:"⏳",c:"#B45309"}, done:{l:"בוצע",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"} };
-const ST_REF = { pending:{l:"למנהל טלפון",i:"📞",c:"#B45309"}, confirmed:{l:"אושר",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"} };
+const ST_ON = { pending:{l:"ממתין",i:"⏳",c:"#B45309"}, done:{l:"בוצע",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"}, deferred_monthly:{l:"נדחה לחודש",i:"📅",c:"#6D28D9"}, deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2"} };
+const ST_REF = { pending:{l:"למנהל טלפון",i:"📞",c:"#B45309"}, confirmed:{l:"אושר",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"}, deferred_monthly:{l:"נדחה לחודש",i:"📅",c:"#6D28D9"}, deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2"} };
 
 const C={
 bg:"#F4F6F9", white:"#FFFFFF", navy:"#0A1F44", blue:"#1B4FD8",
@@ -173,11 +185,18 @@ function TRow({label,val,color,note}){return <div style={{marginBottom:12}}><div
 function DRow({label,val,color}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{fontSize:13,color:C.muted}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:color||C.navy}}>{val}</span></div>;}
 function MStat({label,val,color}){return <div style={{textAlign:"center"}}><div style={{fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontSize:13,fontWeight:700,color:color||C.navy}}>{val}</div></div>;}
 
-function URow({u,onAdvanceOnsite,onStartConfirm,onAdvancePaid,onDelete,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf,onCancelCnf,showDate}){
+function URow({u,onAdvanceOnsite,onStartConfirm,onAdvancePaid,onDelete,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf,onCancelCnf,showDate,
+deleteConfirmId,onCancelDelete,commActionId,setCommActionId,onMarkPaid,onDeferMonthly,onDeferTuesday}){
 const iso=u.type==="onsite";
 const st=(iso?ST_ON:ST_REF)[u.status]||(iso?ST_ON:ST_REF)["pending"];
 const isCnf=confirmId===u.id;
+const isDelConfirm=deleteConfirmId===u.id;
+const isCommAction=commActionId===u.id;
+// P0-3: paid/deferred הם מצבים סופיים — אסור לחזור אחורה
+const isFinal=u.status==="paid"||u.status==="deferred_monthly"||u.status==="deferred_tuesday";
+const hasCommAction=!isFinal&&(u.status==="done"||u.status==="confirmed")&&onMarkPaid;
 const tap=()=>{
+if(isFinal) return;
 if(iso){onAdvanceOnsite(u.id);return;}
 if(u.status==="pending"){onStartConfirm(u.id);return;}
 if(u.status==="confirmed"){onAdvancePaid(u.id);return;}
@@ -186,7 +205,7 @@ const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
 return(
 <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8}}>
 <div style={{display:"flex",alignItems:"center",gap:12}}>
-<button onClick={tap} style={{background:`${st.c}15`,border:`1.5px solid ${st.c}33`,color:st.c,borderRadius:10,width:44,height:44,fontSize:18,cursor:"pointer",flexShrink:0}}>{st.i}</button>
+<button onClick={tap} disabled={isFinal} style={{background:`${st.c}15`,border:`1.5px solid ${st.c}33`,color:st.c,borderRadius:10,width:44,height:44,fontSize:18,cursor:isFinal?"default":"pointer",flexShrink:0,opacity:isFinal?0.65:1}}>{st.i}</button>
 <div style={{flex:1,minWidth:0}}>
 <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{u.name||u.address||u.phone||"ללא שם"}</div>
 <div style={{fontSize:12,color:C.muted,marginTop:1}}>{iso?"במקום":"הפניה"}{showDate&&` · ${dateObj(u.date).toLocaleDateString("he-IL")}`}</div>
@@ -196,8 +215,37 @@ return(
 <span style={{fontSize:11,color:st.c,fontWeight:600}}>{st.l}</span>
 </div>
 </div>
-<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:C.disabled,fontSize:18,cursor:"pointer",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
+<div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
+{hasCommAction&&(
+<button onClick={()=>setCommActionId(isCommAction?null:u.id)} style={{background:C.greenBg,border:`1px solid ${C.greenBdr}`,color:C.green,borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700,minHeight:28,whiteSpace:"nowrap"}}>
+{isCommAction?"סגור ▲":"עמלה ▾"}
+</button>
+)}
+{isDelConfirm?(
+<div style={{display:"flex",gap:4}}>
+<button onClick={()=>onDelete(u.id)} style={{background:C.red,color:"#fff",border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700,minHeight:28}}>מחק!</button>
+<button onClick={onCancelDelete} style={{background:C.surfaceAlt,border:"none",color:C.muted,borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",minHeight:28}}>ביטול</button>
 </div>
+):(
+<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:C.disabled,fontSize:18,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
+)}
+</div>
+</div>
+{isDelConfirm&&(
+<div style={{marginTop:8,background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"8px 12px",fontSize:12,color:C.red,fontWeight:600}}>
+⚠️ הפעולה בלתי הפיכה — המידע יימחק לצמיתות
+</div>
+)}
+{isCommAction&&(
+<div style={{marginTop:10,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:10}}>
+<div style={{fontSize:12,color:C.green,fontWeight:700,marginBottom:8}}>מה לעשות עם העמלה?</div>
+<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+<button onClick={()=>onMarkPaid(u.id)} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"9px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1}}>✓ גביתי</button>
+<button onClick={()=>onDeferMonthly(u.id)} style={{background:C.purpleBg,color:C.purple,border:`1px solid ${C.purpleBdr}`,borderRadius:8,padding:"9px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1}}>📅 לחודש</button>
+<button onClick={()=>onDeferTuesday(u.id)} style={{background:"#ECFEFF",color:"#0891B2",border:"1px solid #A5F3FC",borderRadius:8,padding:"9px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1}}>⏰ לשלישי הבא</button>
+</div>
+</div>
+)}
 {isCnf&&(
 <div style={{marginTop:12,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:12}}>
 <div style={{fontSize:13,color:C.green,marginBottom:10,fontWeight:700}}>סכום העסקה הסופי</div>
@@ -285,7 +333,7 @@ const calMDays=grid.filter(Boolean);
 const cmActive=calMDays.filter(d=>data.workDays[d]?.isActive).length;
 const cmTips=calMDays.reduce((s,d)=>s+(data.workDays[d]?.tips||0),0);
 const cmBonus=calMDays.reduce((s,d)=>s+(data.workDays[d]?.bonus||0),0);
-const cmComm=data.upsells.filter(u=>calMDays.includes(u.date)&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
+const cmComm=data.upsells.filter(u=>calMDays.includes(u.date)&&(u.status==="paid"||u.status==="deferred_monthly")).reduce((s,u)=>s+(u.commission||0),0);
 const cmTotal=cmActive*BASE+cmTips+cmBonus+cmComm;
 const prevMo=()=>{if(calMonth===0){setCalYear(y=>y-1);setCalMonth(11);}else setCalMonth(m=>m-1);};
 const canNext=calYear<new Date().getFullYear()||(calYear===new Date().getFullYear()&&calMonth<new Date().getMonth());
@@ -387,6 +435,8 @@ const [form,setForm]=useState({name:"",address:"",phone:"",amount:"",type:"onsit
 const [toast,setToast]=useState("");
 const [confirmId,setConfirmId]=useState(null);
 const [confirmAmt,setConfirmAmt]=useState("");
+const [deleteConfirmId,setDeleteConfirmId]=useState(null);
+const [commActionId,setCommActionId]=useState(null);
 const [modalDay,setModalDay]=useState(null);
 const [showPrivacy,setShowPrivacy]=useState(false);
 const [cookieConsent,setCookieConsent]=useState(()=>!!localStorage.getItem("cookieConsent"));
@@ -404,11 +454,11 @@ const load=async()=>{
 setLoading(true);
 const[{data:wdRows},{data:upRows}]=await Promise.all([
 supabase.from("work_days").select("*").eq("user_id",session.user.id),
-supabase.from("upsells").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false})
+supabase.from("upsells").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false})
 ]);
 const workDays={};
 (wdRows||[]).forEach(r=>{workDays[r.date]={isActive:r.is_active,tips:r.tips,cashFromClients:r.cash_from_clients,bonus:r.bonus};});
-const upsells=(upRows||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission}));
+const upsells=(upRows||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission,paid_at:r.paid_at,deferred_until:r.deferred_until,deleted_at:r.deleted_at}));
 setData({workDays,upsells});
 setLoading(false);
 };
@@ -445,18 +495,28 @@ const selWk=getWeekOf(selDate);
 const selDObj=dateObj(selDate);
 const selMDays=getMonthGrid(selDObj.getFullYear(),selDObj.getMonth()).filter(Boolean);
 
+// P0-1: מחזור מסירה שלישי–שני
+const deliveryTuesday=getDeliveryTuesdayOf(selDate);
+const deliveryCycle=getDeliveryCycle(deliveryTuesday);
+
 const wkActive=selWk.filter(d=>data.workDays[d]?.isActive).length;
 const wkTips=selWk.reduce((s,d)=>s+(data.workDays[d]?.tips||0),0);
 const wkBonus=selWk.reduce((s,d)=>s+(data.workDays[d]?.bonus||0),0);
 const wkComm=data.upsells.filter(u=>selWk.includes(u.date)&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
 const wkTotal=wkActive*BASE+wkTips+wkBonus+wkComm;
-const wkCash=selWk.reduce((s,d)=>s+(data.workDays[d]?.cashFromClients||0),0);
+// P0-1: wkCash על פי מחזור שלישי–שני, לא שבוע קלנדרי
+const wkCash=deliveryCycle.reduce((s,d)=>s+(data.workDays[d]?.cashFromClients||0),0);
 const moActive=selMDays.filter(d=>data.workDays[d]?.isActive).length;
 const moTips=selMDays.reduce((s,d)=>s+(data.workDays[d]?.tips||0),0);
 const moBonus=selMDays.reduce((s,d)=>s+(data.workDays[d]?.bonus||0),0);
-const moComm=data.upsells.filter(u=>selMDays.includes(u.date)&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
+// moComm: paid + deferred_monthly (עמלות שנדחו לחישוב חודשי)
+const moComm=data.upsells.filter(u=>selMDays.includes(u.date)&&(u.status==="paid"||u.status==="deferred_monthly")).reduce((s,u)=>s+(u.commission||0),0);
 const moTotal=moActive*BASE+moTips+moBonus+moComm;
-const pendingComm=data.upsells.filter(u=>u.status==="done"||u.status==="confirmed").reduce((s,u)=>s+(u.commission||0),0);
+// P0-2: pendingComm מוגבל למחזור הנוכחי בלבד
+const pendingComm=data.upsells.filter(u=>
+  (deliveryCycle.includes(u.date)&&(u.status==="done"||u.status==="confirmed"))
+  ||(u.status==="deferred_tuesday"&&u.deferred_until===deliveryTuesday)
+).reduce((s,u)=>s+(u.commission||0),0);
 const tuesdayNet=wkCash-pendingComm;
 const pendingRefs=data.upsells.filter(u=>u.type==="referral"&&u.status==="pending");
 const selUpsells=data.upsells.filter(u=>u.date===selDate);
@@ -480,14 +540,28 @@ if(ins){const u={id:ins.id,date:ins.date,name:ins.name,type:ins.type,status:ins.
 setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});setShowForm(false);flash("✅ נוספה הגדלה");
 };
 
-const advOnsite=async(id)=>{const m={pending:"done",done:"paid",paid:"pending"};const u=data.upsells.find(u=>u.id===id);const ns=m[u.status];await supabase.from("upsells").update({status:ns}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:ns})}));};
+// P0-3: pending→done→paid בלבד, אין חזרה
+const advOnsite=async(id)=>{const m={pending:"done",done:"paid"};const u=data.upsells.find(u=>u.id===id);const ns=m[u.status];if(!ns)return;const extra=ns==="paid"?{paid_at:new Date().toISOString()}:{};await supabase.from("upsells").update({status:ns,...extra}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:ns,...extra})}));};
 const startCnf=(id)=>{setConfirmId(id);setConfirmAmt("");};
 const submitCnf=async()=>{const a=parseFloat(confirmAmt);if(!a||a<=0)return;const c=a*CR;await supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",confirmId);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==confirmId?u:{...u,status:"confirmed",amount:a,commission:c})}));setConfirmId(null);flash("✅ אושר");};
-const advPaid=async(id)=>{await supabase.from("upsells").update({status:"paid"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid"})}));};
-const delUp=async(id)=>{if(!window.confirm("למחוק?"))return;await supabase.from("upsells").delete().eq("id",id);setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));};
+const advPaid=async(id)=>{const now=new Date().toISOString();await supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));};
+// P0-3: מחיקה רכה (soft delete) עם אישור שני-שלב
+const delUp=async(id)=>{
+if(deleteConfirmId!==id){setDeleteConfirmId(id);return;}
+const now=new Date().toISOString();
+await supabase.from("upsells").update({deleted_at:now}).eq("id",id);
+setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));
+setDeleteConfirmId(null);flash("🗑 נמחק");
+};
+// P0-2: פעולות עמלה — גביתי / נדחה לחודש / נדחה לשלישי הבא
+const markCommPaid=async(id)=>{const now=new Date().toISOString();await supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setCommActionId(null);flash("✅ עמלה שולמה");};
+const deferMonthly=async(id)=>{await supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setCommActionId(null);flash("📅 נדחה לחישוב חודשי");};
+const deferTuesday=async(id)=>{const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));await supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setCommActionId(null);flash("⏰ נדחה לשלישי הבא");};
 
 const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
-const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null)};
+const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null),
+deleteConfirmId,onCancelDelete:()=>setDeleteConfirmId(null),
+commActionId,setCommActionId,onMarkPaid:markCommPaid,onDeferMonthly:deferMonthly,onDeferTuesday:deferTuesday};
 
 const renderField=()=>(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
@@ -598,17 +672,25 @@ return(
 };
 
 const renderTuesday=()=>{
-const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
-const wkRangeLabel=`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
+// P0-1: תצוגת מחזור שלישי–שני (לא שבוע קלנדרי)
+const cycleStart=dateObj(deliveryCycle[0]),cycleEnd=dateObj(deliveryCycle[6]);
+const cycleLabel=`${cycleStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${cycleEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
+const deliveryLbl=deliveryTuesday===TODAY?"מסירה היום ✓":`מסירה ${dateObj(deliveryTuesday).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
+const canFwd=shift(deliveryTuesday,7)<=TODAY;
+// עמלות הניתנות לניהול (done/confirmed במחזור + deferred_tuesday לשלישי זה)
+const cycleCommUpsells=data.upsells.filter(u=>
+  (deliveryCycle.includes(u.date)&&(u.status==="done"||u.status==="confirmed"))
+  ||(u.status==="deferred_tuesday"&&u.deferred_until===deliveryTuesday)
+);
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
-<button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
+<button onClick={()=>goTo(shift(deliveryTuesday,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
 <div style={{textAlign:"center"}}>
-<div style={{fontSize:12,color:C.muted,fontWeight:600}}>שבוע</div>
-<div style={{fontSize:14,fontWeight:700,color:C.navy}}>{wkRangeLabel}</div>
+<div style={{fontSize:11,color:deliveryTuesday===TODAY?C.green:C.muted,fontWeight:700}}>{deliveryLbl}</div>
+<div style={{fontSize:14,fontWeight:700,color:C.navy}}>{cycleLabel}</div>
 </div>
-<button onClick={()=>{if(selWk[6]<TODAY)goTo(shift(selDate,7));}} style={{...BTNI(32),background:selWk[6]<TODAY?C.surfaceAlt:"transparent",border:"none",color:selWk[6]<TODAY?C.sub:C.disabled,cursor:selWk[6]<TODAY?"pointer":"default"}}>‹</button>
+<button onClick={()=>{if(canFwd)goTo(shift(deliveryTuesday,7));}} style={{...BTNI(32),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.sub:C.disabled,cursor:canFwd?"pointer":"default"}}>‹</button>
 </div>
 {pendingRefs.length>0&&(
 <div style={{...card(),background:C.amberBg,border:`1px solid ${C.amberBdr}`,margin:"0 16px 12px"}}>
@@ -623,7 +705,7 @@ return(
 </div>
 )}
 <div style={{...card(),margin:"0 16px 12px"}}>
-<label style={LBL}>התחשבנות שבוע זה</label>
+<label style={LBL}>התחשבנות מחזור זה</label>
 <TRow label="מזומן שגבית מלקוחות" val={fmt(wkCash)} color={C.red} note="מסור למחסן"/>
 <div style={{height:1,background:C.border,margin:"16px 0"}}/>
 <TRow label="עמלות שמגיעות לך" val={`(${fmt(pendingComm)})`} color={C.green}/>
@@ -633,11 +715,17 @@ return(
 <div style={{fontSize:40,fontWeight:900,color:tuesdayNet>=0?C.red:C.green,lineHeight:1}}>{fmt(Math.abs(tuesdayNet))}</div>
 </div>
 </div>
+{cycleCommUpsells.length>0&&(
+<div style={{...card(),margin:"0 16px 12px"}}>
+<label style={{...LBL,color:C.green}}>עמלות במחזור זה — ניהול ({cycleCommUpsells.length})</label>
+{cycleCommUpsells.map(u=><URow key={u.id} u={u} {...upProps} showDate/>)}
+</div>
+)}
 <div style={{...card(),margin:"0 16px"}}>
-<label style={LBL}>פירוט ימי השבוע</label>
-{selWk.map(d=>{
+<label style={LBL}>פירוט ימי המחזור</label>
+{deliveryCycle.map(d=>{
 const wd=data.workDays[d];if(!wd?.isActive)return null;
-const comm=data.upsells.filter(u=>u.date===d&&u.status!=="pending").reduce((s,u)=>s+(u.commission||0),0);
+const comm=data.upsells.filter(u=>u.date===d&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
 const dayTotal=BASE+(wd.tips||0)+(wd.bonus||0)+comm;
 return(
 <div key={d} style={{padding:"12px 0",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -649,7 +737,7 @@ return(
 </div>
 );
 }).filter(Boolean)}
-{selWk.filter(d=>data.workDays[d]?.isActive).length===0&&<div style={{color:C.muted,fontSize:14,textAlign:"center",padding:16}}>אין ימי עבודה השבוע</div>}
+{deliveryCycle.filter(d=>data.workDays[d]?.isActive).length===0&&<div style={{color:C.muted,fontSize:14,textAlign:"center",padding:16}}>אין ימי עבודה במחזור זה</div>}
 </div>
 </div>
 );
