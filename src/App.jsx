@@ -185,42 +185,57 @@ function TRow({label,val,color,note}){return <div style={{marginBottom:12}}><div
 function DRow({label,val,color}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{fontSize:13,color:C.muted}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:color||C.navy}}>{val}</span></div>;}
 function MStat({label,val,color}){return <div style={{textAlign:"center"}}><div style={{fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontSize:13,fontWeight:700,color:color||C.navy}}>{val}</div></div>;}
 
-function URow({u,onAdvanceOnsite,onStartConfirm,onAdvancePaid,onDelete,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf,onCancelCnf,showDate,
-deleteConfirmId,onCancelDelete,commActionId,setCommActionId,onMarkPaid,onDeferMonthly,onDeferTuesday}){
+function URow({u,onAdvanceOnsite,onStartConfirm,onDelete,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf,onCancelCnf,showDate,
+deleteConfirmId,onCancelDelete,
+chipMenuId,setChipMenuId,paidConfirmId,onRequestPaid,onExecutePaid,onCancelPaid,
+onDeferMonthly,onDeferTuesday}){
 const iso=u.type==="onsite";
 const st=(iso?ST_ON:ST_REF)[u.status]||(iso?ST_ON:ST_REF)["pending"];
 const isCnf=confirmId===u.id;
 const isDelConfirm=deleteConfirmId===u.id;
-const isCommAction=commActionId===u.id;
-// P0-3: paid/deferred הם מצבים סופיים — אסור לחזור אחורה
+const isMenuOpen=chipMenuId===u.id;
+const isPaidConfirm=paidConfirmId===u.id;
 const isFinal=u.status==="paid"||u.status==="deferred_monthly"||u.status==="deferred_tuesday";
-const hasCommAction=!isFinal&&(u.status==="done"||u.status==="confirmed")&&onMarkPaid;
-const tap=()=>{
-if(isFinal) return;
-if(iso){onAdvanceOnsite(u.id);return;}
-if(u.status==="pending"){onStartConfirm(u.id);return;}
-if(u.status==="confirmed"){onAdvancePaid(u.id);return;}
-};
 const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
+
+// תפריט פעולות לפי סטטוס
+const bMenu=(label,col,bg,border,onClick)=>(
+<button onClick={onClick} style={{background:bg,color:col,border:`1.5px solid ${border}`,borderRadius:8,padding:"9px 12px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1,textAlign:"center"}}>{label}</button>
+);
+const menuContent=()=>{
+if(iso){
+if(u.status==="pending") return bMenu("✅ סמן כבוצע",C.green,C.greenBg,C.greenBdr,()=>onAdvanceOnsite(u.id));
+if(u.status==="done") return(<><div style={{display:"flex",gap:6,flexWrap:"wrap",width:"100%"}}>{bMenu("✓ גביתי",C.green,C.greenBg,C.greenBdr,()=>onRequestPaid(u.id))}{bMenu("📅 לחודש",C.purple,C.purpleBg,C.purpleBdr,()=>onDeferMonthly(u.id))}{bMenu("⏰ לשלישי הבא","#0891B2","#ECFEFF","#A5F3FC",()=>onDeferTuesday(u.id))}</div></>);
+}else{
+if(u.status==="pending") return bMenu("📞 הזן סכום לאישור",C.amber,C.amberBg,C.amberBdr,()=>{onStartConfirm(u.id);setChipMenuId(null);});
+if(u.status==="confirmed") return(<><div style={{display:"flex",gap:6,flexWrap:"wrap",width:"100%"}}>{bMenu("✓ גביתי",C.green,C.greenBg,C.greenBdr,()=>onRequestPaid(u.id))}{bMenu("📅 לחודש",C.purple,C.purpleBg,C.purpleBdr,()=>onDeferMonthly(u.id))}{bMenu("⏰ לשלישי הבא","#0891B2","#ECFEFF","#A5F3FC",()=>onDeferTuesday(u.id))}</div></>);
+}
+return null;
+};
+
 return(
-<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8}}>
-<div style={{display:"flex",alignItems:"center",gap:12}}>
-<button onClick={tap} disabled={isFinal} style={{background:`${st.c}15`,border:`1.5px solid ${st.c}33`,color:st.c,borderRadius:10,width:44,height:44,fontSize:18,cursor:isFinal?"default":"pointer",flexShrink:0,opacity:isFinal?0.65:1}}>{st.i}</button>
-<div style={{flex:1,minWidth:0}}>
-<div style={{fontWeight:700,fontSize:14,color:C.navy}}>{u.name||u.address||u.phone||"ללא שם"}</div>
-<div style={{fontSize:12,color:C.muted,marginTop:1}}>{iso?"במקום":"הפניה"}{showDate&&` · ${dateObj(u.date).toLocaleDateString("he-IL")}`}</div>
-<div style={{display:"flex",gap:8,marginTop:6,alignItems:"center",flexWrap:"wrap"}}>
-{u.amount>0&&<span style={{fontSize:13,color:C.sub,fontWeight:500}}>{fmt2(u.amount)}</span>}
-{u.commission>0&&<span style={{fontSize:13,color:C.green,fontWeight:700}}>עמלה: {fmt2(u.commission)}</span>}
-<span style={{fontSize:11,color:st.c,fontWeight:600}}>{st.l}</span>
-</div>
-</div>
-<div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
-{hasCommAction&&(
-<button onClick={()=>setCommActionId(isCommAction?null:u.id)} style={{background:C.greenBg,border:`1px solid ${C.greenBdr}`,color:C.green,borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700,minHeight:28,whiteSpace:"nowrap"}}>
-{isCommAction?"סגור ▲":"עמלה ▾"}
+<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8,position:"relative",zIndex:isMenuOpen?100:undefined}}>
+<div style={{display:"flex",alignItems:"center",gap:10}}>
+{/* chip סטטוס לחיץ */}
+<button onClick={()=>{if(!isFinal)setChipMenuId(isMenuOpen?null:u.id);}} disabled={isFinal}
+style={{background:`${st.c}15`,border:`1.5px solid ${st.c}44`,color:st.c,borderRadius:8,padding:"5px 9px",fontSize:12,fontWeight:700,cursor:isFinal?"default":"pointer",flexShrink:0,opacity:isFinal?0.65:1,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",minHeight:34,WebkitTapHighlightColor:"transparent"}}>
+<span style={{fontSize:15,lineHeight:1}}>{st.i}</span>
+<span>{st.l}</span>
+{!isFinal&&<span style={{fontSize:9,opacity:0.7}}>{isMenuOpen?"▴":"▾"}</span>}
 </button>
+{/* שם + פרטים */}
+<div style={{flex:1,minWidth:0}}>
+<div style={{fontWeight:700,fontSize:14,color:C.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name||u.address||u.phone||"ללא שם"}</div>
+<div style={{fontSize:11,color:C.muted,marginTop:1}}>{iso?"במקום":"הפניה"}{showDate&&` · ${dateObj(u.date).toLocaleDateString("he-IL")}`}</div>
+{(u.amount>0||u.commission>0)&&(
+<div style={{display:"flex",gap:6,marginTop:4,alignItems:"center",flexWrap:"wrap"}}>
+{u.amount>0&&<span style={{fontSize:12,color:C.sub,fontWeight:500}}>{fmt2(u.amount)}</span>}
+{u.commission>0&&<span style={{fontSize:12,color:C.green,fontWeight:700}}>עמלה: {fmt2(u.commission)}</span>}
+</div>
 )}
+</div>
+{/* כפתור מחיקה */}
+<div style={{flexShrink:0}}>
 {isDelConfirm?(
 <div style={{display:"flex",gap:4}}>
 <button onClick={()=>onDelete(u.id)} style={{background:C.red,color:"#fff",border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700,minHeight:28}}>מחק!</button>
@@ -231,21 +246,30 @@ return(
 )}
 </div>
 </div>
+{/* אזהרת מחיקה */}
 {isDelConfirm&&(
 <div style={{marginTop:8,background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"8px 12px",fontSize:12,color:C.red,fontWeight:600}}>
 ⚠️ הפעולה בלתי הפיכה — המידע יימחק לצמיתות
 </div>
 )}
-{isCommAction&&(
-<div style={{marginTop:10,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:10}}>
-<div style={{fontSize:12,color:C.green,fontWeight:700,marginBottom:8}}>מה לעשות עם העמלה?</div>
-<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-<button onClick={()=>onMarkPaid(u.id)} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"9px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1}}>✓ גביתי</button>
-<button onClick={()=>onDeferMonthly(u.id)} style={{background:C.purpleBg,color:C.purple,border:`1px solid ${C.purpleBdr}`,borderRadius:8,padding:"9px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1}}>📅 לחודש</button>
-<button onClick={()=>onDeferTuesday(u.id)} style={{background:"#ECFEFF",color:"#0891B2",border:"1px solid #A5F3FC",borderRadius:8,padding:"9px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1}}>⏰ לשלישי הבא</button>
+{/* תפריט inline */}
+{isMenuOpen&&(
+<div style={{marginTop:8,padding:8,background:C.white,border:`1.5px solid ${st.c}33`,borderRadius:10}}>
+{menuContent()}
+</div>
+)}
+{/* אישור מפורש לפני paid */}
+{isPaidConfirm&&(
+<div style={{marginTop:8,background:C.amberBg,border:`1.5px solid ${C.amberBdr}`,borderRadius:10,padding:12}}>
+<div style={{fontSize:13,color:C.amber,fontWeight:700,marginBottom:6}}>לסמן כשולם? הפעולה סופית ובלתי הפיכה</div>
+{u.commission>0&&<div style={{fontSize:13,color:C.green,fontWeight:700,marginBottom:10}}>עמלה: {fmt2(u.commission)}</div>}
+<div style={{display:"flex",gap:8}}>
+<button onClick={()=>onExecutePaid(u.id)} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"10px 0",fontWeight:700,cursor:"pointer",flex:2,fontSize:14}}>✓ אישור</button>
+<button onClick={onCancelPaid} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:8,padding:"10px 0",cursor:"pointer",flex:1,fontSize:14}}>ביטול</button>
 </div>
 </div>
 )}
+{/* הזנת סכום הפניה */}
 {isCnf&&(
 <div style={{marginTop:12,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:12}}>
 <div style={{fontSize:13,color:C.green,marginBottom:10,fontWeight:700}}>סכום העסקה הסופי</div>
@@ -436,7 +460,8 @@ const [toast,setToast]=useState("");
 const [confirmId,setConfirmId]=useState(null);
 const [confirmAmt,setConfirmAmt]=useState("");
 const [deleteConfirmId,setDeleteConfirmId]=useState(null);
-const [commActionId,setCommActionId]=useState(null);
+const [chipMenuId,setChipMenuId]=useState(null);
+const [paidConfirmId,setPaidConfirmId]=useState(null);
 const [modalDay,setModalDay]=useState(null);
 const [showPrivacy,setShowPrivacy]=useState(false);
 const [cookieConsent,setCookieConsent]=useState(()=>!!localStorage.getItem("cookieConsent"));
@@ -540,11 +565,10 @@ if(ins){const u={id:ins.id,date:ins.date,name:ins.name,type:ins.type,status:ins.
 setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});setShowForm(false);flash("✅ נוספה הגדלה");
 };
 
-// P0-3: pending→done→paid בלבד, אין חזרה
-const advOnsite=async(id)=>{const m={pending:"done",done:"paid"};const u=data.upsells.find(u=>u.id===id);const ns=m[u.status];if(!ns)return;const extra=ns==="paid"?{paid_at:new Date().toISOString()}:{};await supabase.from("upsells").update({status:ns,...extra}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:ns,...extra})}));};
-const startCnf=(id)=>{setConfirmId(id);setConfirmAmt("");};
+// P0-3: pending→done בלבד — done→paid דורש אישור מפורש
+const advOnsite=async(id)=>{const u=data.upsells.find(u=>u.id===id);if(u.status!=="pending")return;await supabase.from("upsells").update({status:"done"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"done"})}));setChipMenuId(null);};
+const startCnf=(id)=>{setConfirmId(id);setConfirmAmt("");setChipMenuId(null);};
 const submitCnf=async()=>{const a=parseFloat(confirmAmt);if(!a||a<=0)return;const c=a*CR;await supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",confirmId);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==confirmId?u:{...u,status:"confirmed",amount:a,commission:c})}));setConfirmId(null);flash("✅ אושר");};
-const advPaid=async(id)=>{const now=new Date().toISOString();await supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));};
 // P0-3: מחיקה רכה (soft delete) עם אישור שני-שלב
 const delUp=async(id)=>{
 if(deleteConfirmId!==id){setDeleteConfirmId(id);return;}
@@ -553,15 +577,17 @@ await supabase.from("upsells").update({deleted_at:now}).eq("id",id);
 setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));
 setDeleteConfirmId(null);flash("🗑 נמחק");
 };
-// P0-2: פעולות עמלה — גביתי / נדחה לחודש / נדחה לשלישי הבא
-const markCommPaid=async(id)=>{const now=new Date().toISOString();await supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setCommActionId(null);flash("✅ עמלה שולמה");};
-const deferMonthly=async(id)=>{await supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setCommActionId(null);flash("📅 נדחה לחישוב חודשי");};
-const deferTuesday=async(id)=>{const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));await supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setCommActionId(null);flash("⏰ נדחה לשלישי הבא");};
+// paid דרך אישור מפורש בלבד (כל המסלולים)
+const requestPaid=(id)=>{setChipMenuId(null);setPaidConfirmId(id);};
+const executePaid=async(id)=>{const now=new Date().toISOString();await supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);flash("✅ שולם");};
+const deferMonthly=async(id)=>{await supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setChipMenuId(null);flash("📅 נדחה לחישוב חודשי");};
+const deferTuesday=async(id)=>{const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));await supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setChipMenuId(null);flash("⏰ נדחה לשלישי הבא");};
 
 const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
-const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onAdvancePaid:advPaid,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null),
+const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null),
 deleteConfirmId,onCancelDelete:()=>setDeleteConfirmId(null),
-commActionId,setCommActionId,onMarkPaid:markCommPaid,onDeferMonthly:deferMonthly,onDeferTuesday:deferTuesday};
+chipMenuId,setChipMenuId,paidConfirmId,onRequestPaid:requestPaid,onExecutePaid:executePaid,onCancelPaid:()=>setPaidConfirmId(null),
+onDeferMonthly:deferMonthly,onDeferTuesday:deferTuesday};
 
 const renderField=()=>(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
@@ -645,7 +671,7 @@ const renderField=()=>(
 );
 
 const renderSummary=()=>{
-const allActive=data.upsells.filter(u=>u.status!=="paid");
+const allActive=data.upsells.filter(u=>!["paid","deferred_monthly","deferred_tuesday"].includes(u.status));
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
@@ -744,6 +770,7 @@ return(
 };
 
 const overlays=(<>
+{chipMenuId&&<div onClick={()=>setChipMenuId(null)} style={{position:"fixed",inset:0,zIndex:98,WebkitTapHighlightColor:"transparent"}}/>}
 {!cookieConsent&&<CookieBanner onAccept={acceptCookies} onOpenPrivacy={()=>setShowPrivacy(true)}/>}
 {showPrivacy&&<PrivacyModal onClose={()=>setShowPrivacy(false)}/>}
 </>);
