@@ -63,11 +63,13 @@
         touch-action: manipulation;
       }
 
-      /* Prevent double-tap zoom + constrain children */
+      /* Prevent double-tap zoom — only on interactive elements, NOT everything */
+      #root button, #root input, #root select, #root textarea, #root a, #root [role="button"] {
+        touch-action: manipulation;
+      }
       #root * {
         max-width: 100%;
         box-sizing: border-box;
-        touch-action: manipulation;
       }
 
       /* Mobile: full-bleed */
@@ -101,12 +103,48 @@
       button {
         transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s ease;
       }
-      /* Smooth scrolling for iOS-like inertia */
-      #root {
-        scroll-behavior: smooth;
-      }
+      /* Native iOS scroll: NO smooth-scroll — let WebKit handle momentum */
+      /* (-webkit-overflow-scrolling: touch on #root gives native inertia) */
+
       /* Disable button press effect on tab bar — handled separately */
       .app-shell > div:last-of-type button:active { transform: none; opacity: 1; }
+
+      /* Sticky stack: header + week-nav stay locked at top while scrolling */
+      .sticky-stack { position: sticky; top: 0; z-index: 100; }
+      .sticky-week { position: sticky; z-index: 95; }
+
+      /* Action sheet — slides from bottom */
+      @keyframes sheetIn {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      .action-sheet-backdrop {
+        animation: fadeIn 0.2s ease-out;
+      }
+      .action-sheet {
+        animation: sheetIn 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+        will-change: transform;
+      }
+      /* Spin (loading) */
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      /* Skeleton shimmer */
+      @keyframes shimmer {
+        0% { background-position: -200px 0; }
+        100% { background-position: 200px 0; }
+      }
+      .skeleton {
+        background: linear-gradient(90deg, #F0F0F2 25%, #E5E5EA 50%, #F0F0F2 75%);
+        background-size: 200px 100%;
+        animation: shimmer 1.4s ease-in-out infinite;
+        border-radius: 8px;
+      }
 
       /* Desktop: centered card with gutter */
       @media (min-width: 600px) {

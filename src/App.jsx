@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/react";
 import { Capacitor } from "@capacitor/core";
@@ -224,6 +224,126 @@ const Icon=({name,size=20,color="currentColor",strokeWidth=2})=>{
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{display:"block",flexShrink:0}}>{paths[name]||null}</svg>;
 };
 
+// UX-P2: Action Sheet — iOS-native bottom modal for actions/choices
+function ActionSheet({title,description,actions,cancelLabel="ביטול",onClose}){
+  // actions: [{label, icon?, tone?:'default'|'success'|'danger'|'warning'|'special', onClick}]
+  const toneColor={
+    success:C.success, danger:C.danger, warning:C.warning, special:C.special, brand:C.brand, default:C.ink
+  };
+  return(
+    <div className="action-sheet-backdrop" onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.32)",zIndex:600,display:"flex",alignItems:"flex-end",WebkitTapHighlightColor:"transparent"}}>
+      <div className="action-sheet" onClick={e=>e.stopPropagation()} style={{width:"100%",padding:"0 8px",paddingBottom:"calc(8px + env(safe-area-inset-bottom))",direction:"rtl"}}>
+        <div style={{background:`rgba(250,250,251,0.94)`,backdropFilter:"blur(40px) saturate(180%)",WebkitBackdropFilter:"blur(40px) saturate(180%)",borderRadius:14,overflow:"hidden",marginBottom:8}}>
+          {(title||description)&&(
+            <div style={{padding:"16px 20px",textAlign:"center",borderBottom:`0.5px solid ${C.border}`}}>
+              {title&&<div style={{fontSize:13,fontWeight:600,color:C.inkSecondary,marginBottom:description?4:0}}>{title}</div>}
+              {description&&<div style={{fontSize:12,color:C.inkTertiary,lineHeight:1.45}}>{description}</div>}
+            </div>
+          )}
+          {actions.map((a,i)=>(
+            <button key={i} onClick={()=>{a.onClick();onClose();}} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",padding:"16px 20px",background:"transparent",border:"none",borderTop:i>0?`0.5px solid ${C.border}`:"none",cursor:"pointer",color:toneColor[a.tone||"default"],fontSize:17,fontWeight:a.tone==="danger"?600:500,WebkitTapHighlightColor:"transparent"}}>
+              {a.icon&&<Icon name={a.icon} size={20} strokeWidth={2}/>}
+              <span>{a.label}</span>
+            </button>
+          ))}
+        </div>
+        <button onClick={onClose} style={{width:"100%",padding:"17px 20px",background:`rgba(255,255,255,0.94)`,backdropFilter:"blur(40px) saturate(180%)",WebkitBackdropFilter:"blur(40px) saturate(180%)",border:"none",borderRadius:14,cursor:"pointer",fontSize:17,fontWeight:600,color:C.brand,WebkitTapHighlightColor:"transparent"}}>{cancelLabel}</button>
+      </div>
+    </div>
+  );
+}
+
+// UX-P3: Segmented Control — iOS-native group toggle
+function SegmentedControl({options,value,onChange}){
+  return(
+    <div style={{display:"flex",background:C.surfaceAlt,borderRadius:R.s+2,padding:3,gap:0}}>
+      {options.map(o=>{
+        const isSel=value===o.value;
+        return(
+          <button key={o.value} onClick={()=>{haptics.light();onChange(o.value);}} style={{flex:1,background:isSel?C.surface:"transparent",border:"none",borderRadius:R.s,padding:"9px",fontSize:14,fontWeight:600,color:isSel?C.ink:C.inkSecondary,cursor:"pointer",WebkitTapHighlightColor:"transparent",transition:"all 0.2s ease",boxShadow:isSel?"0 1px 3px rgba(0,0,0,0.08)":"none"}}>{o.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+// UX-P3: Add Upsell — full modal sheet with proper form
+function AddUpsellSheet({selDate,onSubmit,onClose,busy}){
+  const [form,setForm]=useState({name:"",address:"",phone:"",amount:"",type:"onsite"});
+  const iso=form.type==="onsite";
+  const canSubmit=iso?(form.address.trim()&&parseAmount(form.amount,999999)!==null):form.phone.trim().length>=7;
+  const dateLabel=selDate===TODAY?"היום":dateObj(selDate).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"});
+  return(
+    <div className="action-sheet-backdrop" onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.32)",zIndex:600,display:"flex",alignItems:"flex-end",WebkitTapHighlightColor:"transparent"}}>
+      <div className="action-sheet" onClick={e=>e.stopPropagation()} style={{width:"100%",direction:"rtl",background:C.surface,borderRadius:"20px 20px 0 0",maxHeight:"90vh",overflowY:"auto",paddingBottom:"calc(20px + env(safe-area-inset-bottom))"}}>
+        <div style={{display:"flex",justifyContent:"center",padding:"10px 0 0"}}><div style={{width:36,height:4,borderRadius:2,background:C.border}}/></div>
+        <div style={{padding:"12px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:16,color:C.brand,fontWeight:500,cursor:"pointer",padding:"6px 0",WebkitTapHighlightColor:"transparent"}}>ביטול</button>
+          <div style={{fontSize:17,fontWeight:700,color:C.ink,letterSpacing:"-0.01em"}}>הגדלה חדשה</div>
+          <button onClick={()=>onSubmit(form)} disabled={!canSubmit||busy} style={{background:"transparent",border:"none",fontSize:16,color:canSubmit&&!busy?C.brand:C.inkQuaternary,fontWeight:600,cursor:canSubmit&&!busy?"pointer":"default",padding:"6px 0",WebkitTapHighlightColor:"transparent"}}>{busy?"שומר…":"הוסף"}</button>
+        </div>
+        <div style={{padding:"0 20px",fontSize:12,color:C.inkTertiary,marginBottom:18,fontWeight:500}}>תאריך · {dateLabel}</div>
+        <div style={{padding:"0 20px 12px"}}>
+          <div style={{marginBottom:18}}>
+            <label style={LBL}>סוג</label>
+            <SegmentedControl options={[{value:"onsite",label:"במקום"},{value:"referral",label:"הפניה"}]} value={form.type} onChange={(v)=>setForm(f=>({...f,type:v}))}/>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={LBL}>שם הלקוח (אופציונלי)</label>
+            <input type="text" placeholder="לדוגמה: דני כהן" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} style={INP}/>
+          </div>
+          {iso?<>
+            <div style={{marginBottom:14}}>
+              <label style={LBL}>כתובת *</label>
+              <input type="text" value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))} style={INP} placeholder="לדוגמה: הגאולים 14, רמת גן"/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={LBL}>סכום הגדלה (₪) *</label>
+              <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" enterKeyHint="done" placeholder="0" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} style={INP}/>
+              {form.amount&&parseFloat(form.amount)>0&&<div style={{marginTop:10,padding:"10px 14px",background:C.successSoft,borderRadius:R.s+2,fontSize:13,color:C.successDeep,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><Icon name="dollar" size={14} strokeWidth={2.2}/><span>עמלה: {fmt(parseFloat(form.amount)*CR)}</span></div>}
+            </div>
+          </>:<>
+            <div style={{marginBottom:14}}>
+              <label style={LBL}>טלפון *</label>
+              <input type="tel" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} style={INP} placeholder="050-0000000" dir="ltr"/>
+            </div>
+            <div style={{padding:"12px 14px",background:C.warningSoft,borderRadius:R.s+2,fontSize:13,color:C.warningDeep,fontWeight:500,display:"flex",alignItems:"flex-start",gap:8,marginBottom:8}}>
+              <Icon name="phone" size={14} strokeWidth={2.2}/>
+              <span>למסירה למנהל ביום שלישי — תקבל תזכורת.</span>
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// UX-P2: Form Sheet — bottom sheet with an input + primary action (for amount entries, etc)
+function FormSheet({title,description,inputLabel,inputType="text",inputMode,placeholder="0",initial="",submitLabel="שמור",onSubmit,onClose,helperText,extraHelper,helperColor,busy}){
+  const [val,setVal]=useState(initial);
+  const inputRef=useRef(null);
+  useEffect(()=>{ const t=setTimeout(()=>inputRef.current?.focus(),250); return ()=>clearTimeout(t); },[]);
+  return(
+    <div className="action-sheet-backdrop" onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.32)",zIndex:600,display:"flex",alignItems:"flex-end",WebkitTapHighlightColor:"transparent"}}>
+      <div className="action-sheet" onClick={e=>e.stopPropagation()} style={{width:"100%",direction:"rtl",background:C.surface,borderRadius:"20px 20px 0 0",paddingBottom:"calc(20px + env(safe-area-inset-bottom))"}}>
+        <div style={{display:"flex",justifyContent:"center",padding:"10px 0 0"}}><div style={{width:36,height:4,borderRadius:2,background:C.border}}/></div>
+        <div style={{padding:"16px 20px 0"}}>
+          {title&&<div style={{fontSize:17,fontWeight:700,color:C.ink,letterSpacing:"-0.01em",marginBottom:description?6:14}}>{title}</div>}
+          {description&&<div style={{fontSize:13,color:C.inkTertiary,marginBottom:14,lineHeight:1.45}}>{description}</div>}
+          {inputLabel&&<label style={{...T.captionUC,display:"block",marginBottom:6}}>{inputLabel}</label>}
+          <input ref={inputRef} type={inputType} inputMode={inputMode||"numeric"} pattern="[0-9]*" autoComplete="off" enterKeyHint="done" placeholder={placeholder} value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!busy&&onSubmit(val)} style={INP}/>
+          {helperText&&val&&<div style={{marginTop:10,fontSize:13,color:helperColor||C.success,fontWeight:600}}>{helperText(val)}</div>}
+          {extraHelper&&<div style={{marginTop:10,fontSize:12,color:C.inkTertiary,lineHeight:1.45}}>{extraHelper}</div>}
+          <div style={{display:"flex",gap:8,marginTop:18}}>
+            <button onClick={()=>onSubmit(val)} disabled={busy} style={{...BTNP,flex:2,opacity:busy?0.6:1}}>{busy?"שומר…":submitLabel}</button>
+            <button onClick={onClose} disabled={busy} style={{...BTNS,flex:1}}>ביטול</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PrivacyModal({onClose}){
 return(
 <div style={{position:"fixed",inset:0,background:C.overlay,zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
@@ -296,9 +416,9 @@ return (
 <div style={{background:C.bg,minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"calc(24px + env(safe-area-inset-top))",paddingBottom:24,paddingLeft:"calc(24px + env(safe-area-inset-left))",paddingRight:"calc(24px + env(safe-area-inset-right))",fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
 <div style={{width:"100%",maxWidth:"min(400px, 100% - 48px)"}}>
 <div style={{textAlign:"center",marginBottom:32}}>
-<div style={{fontSize:48,marginBottom:8}}>🔧</div>
-<div style={{fontSize:28,fontWeight:900,color:C.navy}}>כרישים בניקיון</div>
-<div style={{fontSize:14,color:C.muted,marginTop:4}}>ניהול שטח מקצועי</div>
+<img src="/apple-touch-icon.png" style={{width:72,height:72,borderRadius:18,marginBottom:14,boxShadow:"0 8px 20px rgba(0,0,0,0.12)"}}/>
+<div style={{fontSize:28,fontWeight:700,color:C.ink,letterSpacing:"-0.02em"}}>כרישים בניקיון</div>
+<div style={{fontSize:15,color:C.inkTertiary,marginTop:6,fontWeight:500}}>ניהול שטח מקצועי</div>
 </div>
 <div style={card()}>
 <div style={{display:"flex",marginBottom:20,background:C.surfaceAlt,borderRadius:10,padding:4}}>
@@ -328,148 +448,93 @@ return (
 }
 
 function HR({label,val,hi}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0"}}><span style={{fontSize:13,color:hi?"#E5C8F2":"rgba(255,255,255,0.7)",fontWeight:500}}>{label}</span><span style={{fontSize:14,fontWeight:600,color:hi?"#E5C8F2":"#fff"}}>{val}</span></div>;}
+
+// UX-P5: Empty State — friendly empty UI with optional CTA
+function EmptyState({icon="info",title,description,actionLabel,onAction,subtle}){
+  return(
+    <div style={{textAlign:"center",padding:subtle?"24px 20px":"36px 20px",direction:"rtl"}}>
+      <div style={{width:56,height:56,borderRadius:"50%",background:C.brandSoft,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.brand}}><Icon name={icon} size={26} strokeWidth={1.8}/></div>
+      <div style={{fontSize:16,fontWeight:600,color:C.ink,marginBottom:6,letterSpacing:"-0.01em"}}>{title}</div>
+      {description&&<div style={{fontSize:13,color:C.inkTertiary,lineHeight:1.5,maxWidth:280,margin:"0 auto"}}>{description}</div>}
+      {actionLabel&&<button onClick={onAction} style={{marginTop:16,background:C.brand,color:"#fff",border:"none",borderRadius:R.s+4,padding:"11px 22px",fontSize:14,fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>{actionLabel}</button>}
+    </div>
+  );
+}
+
+// UX-P6: Skeleton Card — loading placeholder
+function SkeletonCard({h=64}){return <div style={{margin:"0 16px 12px",height:h,background:"#F0F0F2",borderRadius:R.m}} className="skeleton"/>;}
 function TRow({label,val,color,note}){return <div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:2}}>{label}{note&&<span style={{marginRight:6,color:C.muted,fontWeight:400}}>{note}</span>}</div><div style={{fontSize:22,fontWeight:800,color:color||C.navy}}>{val}</div></div>;}
 function DRow({label,val,color}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{fontSize:13,color:C.muted}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:color||C.navy}}>{val}</span></div>;}
 function MStat({label,val,color}){return <div style={{textAlign:"center"}}><div style={{fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontSize:13,fontWeight:700,color:color||C.navy}}>{val}</div></div>;}
 
-function URow({u,onAdvanceOnsite,onStartConfirm,onDelete,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf,onCancelCnf,showDate,
-deleteConfirmId,onCancelDelete,
-chipMenuId,setChipMenuId,paidConfirmId,onRequestPaid,onExecutePaid,onCancelPaid,
-onDeferMonthly,onDeferTuesday}){
-const iso=u.type==="onsite";
-const st=(iso?ST_ON:ST_REF)[u.status]||(iso?ST_ON:ST_REF)["pending"];
-const isCnf=confirmId===u.id;
-const isDelConfirm=deleteConfirmId===u.id;
-const isMenuOpen=chipMenuId===u.id;
-const isPaidConfirm=paidConfirmId===u.id;
-const isFinal=u.status==="paid"||u.status==="deferred_monthly"||u.status==="deferred_tuesday";
-const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
-
-// תפריט פעולות לפי סטטוס
-const bMenu=(label,col,bg,border,onClick)=>(
-<button onClick={onClick} style={{background:bg,color:col,border:`1.5px solid ${border}`,borderRadius:8,padding:"9px 12px",fontSize:12,fontWeight:700,cursor:"pointer",flex:1,textAlign:"center"}}>{label}</button>
-);
-const menuContent=()=>{
-if(iso){
-if(u.status==="pending") return bMenu("✅ סמן כבוצע",C.green,C.greenBg,C.greenBdr,()=>onAdvanceOnsite(u.id));
-if(u.status==="done") return(<><div style={{display:"flex",gap:6,flexWrap:"wrap",width:"100%"}}>{bMenu("✓ גביתי",C.green,C.greenBg,C.greenBdr,()=>onRequestPaid(u.id))}{bMenu("📅 לחודש",C.purple,C.purpleBg,C.purpleBdr,()=>onDeferMonthly(u.id))}{bMenu("⏰ לשלישי הבא","#0891B2","#ECFEFF","#A5F3FC",()=>onDeferTuesday(u.id))}</div></>);
-}else{
-if(u.status==="pending") return bMenu("📞 הזן סכום לאישור",C.amber,C.amberBg,C.amberBdr,()=>{onStartConfirm(u.id);setChipMenuId(null);});
-if(u.status==="confirmed") return(<><div style={{display:"flex",gap:6,flexWrap:"wrap",width:"100%"}}>{bMenu("✓ גביתי",C.green,C.greenBg,C.greenBdr,()=>onRequestPaid(u.id))}{bMenu("📅 לחודש",C.purple,C.purpleBg,C.purpleBdr,()=>onDeferMonthly(u.id))}{bMenu("⏰ לשלישי הבא","#0891B2","#ECFEFF","#A5F3FC",()=>onDeferTuesday(u.id))}</div></>);
-}
-return null;
+// Status icon mapping — SVG instead of emoji
+const ST_ICON={
+  pending:"clock", done:"check", confirmed:"check", paid:"dollar",
+  deferred_monthly:"calendar", deferred_tuesday:"clock"
 };
 
+function URow({u,onOpenStatusSheet,onDelete,showDate}){
+const iso=u.type==="onsite";
+const st=(iso?ST_ON:ST_REF)[u.status]||(iso?ST_ON:ST_REF)["pending"];
+const isFinal=u.status==="paid"||u.status==="deferred_monthly"||u.status==="deferred_tuesday";
+const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
+const iconName=ST_ICON[u.status]||"clock";
 return(
-<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:8,position:"relative",zIndex:isMenuOpen?100:undefined}}>
+<div style={{background:C.surface,borderRadius:R.m,padding:"12px 14px",marginBottom:8,border:`1px solid ${C.borderSubtle}`,boxShadow:C.shSm}}>
 <div style={{display:"flex",alignItems:"center",gap:10}}>
-{/* chip סטטוס לחיץ */}
-<button onClick={()=>{if(!isFinal)setChipMenuId(isMenuOpen?null:u.id);}} disabled={isFinal}
-style={{background:`${st.c}15`,border:`1.5px solid ${st.c}44`,color:st.c,borderRadius:8,padding:"5px 9px",fontSize:12,fontWeight:700,cursor:isFinal?"default":"pointer",flexShrink:0,opacity:isFinal?0.65:1,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",minHeight:34,WebkitTapHighlightColor:"transparent"}}>
-<span style={{fontSize:15,lineHeight:1}}>{st.i}</span>
+{/* chip סטטוס לחיץ — פותח ActionSheet */}
+<button onClick={()=>{if(!isFinal){haptics.light();onOpenStatusSheet(u);}}} disabled={isFinal}
+style={{background:st.bg,border:"none",color:st.c,borderRadius:R.full,padding:"6px 11px 6px 9px",fontSize:12,fontWeight:600,cursor:isFinal?"default":"pointer",flexShrink:0,opacity:isFinal?0.5:1,display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",minHeight:30,WebkitTapHighlightColor:"transparent",transition:"opacity 0.15s ease"}}>
+<Icon name={iconName} size={13} strokeWidth={2.4} color={st.c}/>
 <span>{st.l}</span>
-{!isFinal&&<span style={{fontSize:9,opacity:0.7}}>{isMenuOpen?"▴":"▾"}</span>}
 </button>
 {/* שם + פרטים */}
 <div style={{flex:1,minWidth:0}}>
-<div style={{fontWeight:700,fontSize:14,color:C.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name||u.address||u.phone||"ללא שם"}</div>
-<div style={{fontSize:11,color:C.muted,marginTop:1}}>{iso?"במקום":"הפניה"}{showDate&&` · ${dateObj(u.date).toLocaleDateString("he-IL")}`}</div>
+<div style={{fontWeight:600,fontSize:15,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.01em"}}>{u.name||u.address||u.phone||"ללא שם"}</div>
+<div style={{fontSize:12,color:C.inkTertiary,marginTop:2,fontWeight:500}}>{iso?"במקום":"הפניה"}{showDate&&` · ${dateObj(u.date).toLocaleDateString("he-IL")}`}</div>
 {(u.amount>0||u.commission>0)&&(
-<div style={{display:"flex",gap:6,marginTop:4,alignItems:"center",flexWrap:"wrap"}}>
-{u.amount>0&&<span style={{fontSize:12,color:C.sub,fontWeight:500}}>{fmt2(u.amount)}</span>}
-{u.commission>0&&<span style={{fontSize:12,color:C.green,fontWeight:700}}>עמלה: {fmt2(u.commission)}</span>}
+<div style={{display:"flex",gap:8,marginTop:6,alignItems:"center",flexWrap:"wrap"}}>
+{u.amount>0&&<span style={{fontSize:13,color:C.inkSecondary,fontWeight:500}}>{fmt2(u.amount)}</span>}
+{u.commission>0&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>עמלה {fmt2(u.commission)}</span>}
 </div>
 )}
 </div>
 {/* כפתור מחיקה */}
-<div style={{flexShrink:0}}>
-{isDelConfirm?(
-<div style={{display:"flex",gap:4}}>
-<button onClick={()=>onDelete(u.id)} style={{background:C.red,color:"#fff",border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700,minHeight:28}}>מחק!</button>
-<button onClick={onCancelDelete} style={{background:C.surfaceAlt,border:"none",color:C.muted,borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",minHeight:28}}>ביטול</button>
+<button onClick={()=>{haptics.light();onDelete(u);}} style={{background:"transparent",border:"none",color:C.inkQuaternary,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}><Icon name="trash" size={18} strokeWidth={1.8}/></button>
 </div>
-):(
-<button onClick={()=>onDelete(u.id)} style={{background:"transparent",border:"none",color:C.inkQuaternary,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}><Icon name="trash" size={18} strokeWidth={1.8}/></button>
-)}
-</div>
-</div>
-{/* אזהרת מחיקה */}
-{isDelConfirm&&(
-<div style={{marginTop:8,background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"8px 12px",fontSize:12,color:C.red,fontWeight:600}}>
-⚠️ הפעולה בלתי הפיכה — המידע יימחק לצמיתות
-</div>
-)}
-{/* תפריט inline */}
-{isMenuOpen&&(
-<div style={{marginTop:8,padding:8,background:C.white,border:`1.5px solid ${st.c}33`,borderRadius:10}}>
-{menuContent()}
-</div>
-)}
-{/* אישור מפורש לפני paid */}
-{isPaidConfirm&&(
-<div style={{marginTop:8,background:C.amberBg,border:`1.5px solid ${C.amberBdr}`,borderRadius:10,padding:12}}>
-<div style={{fontSize:13,color:C.amber,fontWeight:700,marginBottom:6}}>לסמן כשולם? הפעולה סופית ובלתי הפיכה</div>
-{u.commission>0&&<div style={{fontSize:13,color:C.green,fontWeight:700,marginBottom:10}}>עמלה: {fmt2(u.commission)}</div>}
-<div style={{display:"flex",gap:8}}>
-<button onClick={()=>onExecutePaid(u.id)} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"10px 0",fontWeight:700,cursor:"pointer",flex:2,fontSize:14}}>✓ אישור</button>
-<button onClick={onCancelPaid} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:8,padding:"10px 0",cursor:"pointer",flex:1,fontSize:14}}>ביטול</button>
-</div>
-</div>
-)}
-{/* הזנת סכום הפניה */}
-{isCnf&&(
-<div style={{marginTop:12,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:10,padding:12}}>
-<div style={{fontSize:13,color:C.green,marginBottom:10,fontWeight:700}}>סכום העסקה הסופי</div>
-<div style={{display:"flex",gap:8}}>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="₪ סכום" value={confirmAmt} onChange={e=>setConfirmAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSubmitCnf()} style={{...INP,flex:1}}/>
-<button onClick={onSubmitCnf} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",minHeight:44}}>אישור</button>
-<button onClick={onCancelCnf} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer",minHeight:44}}>ביטול</button>
-</div>
-{confirmAmt&&parseFloat(confirmAmt)>0&&<div style={{fontSize:13,color:C.green,marginTop:8}}>עמלה: {fmt2(parseFloat(confirmAmt)*CR)}</div>}
-</div>
-)}
 </div>
 );
 }
 
-function AmountRow({label,total,addVal,setAdd,onAdd,mode,color,borderColor,bgColor,editMode,editVal,setEditMode,setEditVal,saveEdit}){
-const isEdit=editMode===mode;
+function AmountRow({label,total,addVal,setAdd,onAdd,mode,color,onEdit,icon}){
 return(
-<div style={{...card(),padding:12,border:`1.5px solid ${borderColor||C.border}`,background:bgColor||C.white}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-<div style={{...LBL,marginBottom:0,color:color||C.muted}}>{label}</div>
-{total>0&&!isEdit&&(
+<div style={{background:C.surface,border:`1px solid ${C.borderSubtle}`,borderRadius:R.m,padding:"14px 16px",marginBottom:10,boxShadow:C.shSm}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:total>0?10:12}}>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
-<span style={{fontSize:15,fontWeight:700,color:color||C.navy}}>{fmt(total)}</span>
-<button onClick={()=>{setEditMode(mode);setEditVal(String(total));}} style={{background:C.surfaceAlt,border:"none",color:C.sub,borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer",minHeight:44,alignSelf:"center"}}>עריכה</button>
+{icon&&<div style={{width:28,height:28,borderRadius:8,background:`${color||C.inkSecondary}1A`,display:"flex",alignItems:"center",justifyContent:"center",color:color||C.inkSecondary}}><Icon name={icon} size={15} strokeWidth={2.2}/></div>}
+<div style={{fontSize:14,fontWeight:600,color:C.ink,letterSpacing:"-0.005em"}}>{label}</div>
 </div>
+{total>0&&(
+<button onClick={onEdit} style={{display:"flex",alignItems:"center",gap:6,background:"transparent",border:"none",cursor:"pointer",color:color||C.ink,WebkitTapHighlightColor:"transparent",padding:0}}>
+<span style={{fontSize:17,fontWeight:700,letterSpacing:"-0.01em"}}>{fmt(total)}</span>
+<Icon name="edit" size={14} strokeWidth={2} color={C.inkTertiary}/>
+</button>
 )}
 </div>
-{isEdit?(
-<div>
-<div style={{fontSize:12,color:C.muted,marginBottom:6}}>ערוך סכום כולל</div>
 <div style={{display:"flex",gap:8}}>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()} style={{...INP,flex:1}}/>
-<button onClick={saveEdit} style={{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",minHeight:44}}>שמור</button>
-<button onClick={()=>setEditMode(null)} style={{background:C.surfaceAlt,color:C.sub,border:"none",borderRadius:10,padding:"0 12px",cursor:"pointer",minHeight:44}}>ביטול</button>
+<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" enterKeyHint="done" placeholder="הקש סכום…" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1,fontSize:16}}/>
+<button onClick={onAdd} style={{background:color||C.brand,color:"#fff",border:"none",borderRadius:R.s+4,padding:"0 16px",fontWeight:600,cursor:"pointer",minHeight:48,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",minWidth:48,boxShadow:`0 2px 8px ${color||C.brand}33`}}><Icon name="plus" size={20} strokeWidth={2.5} color="#fff"/></button>
 </div>
-</div>
-):(
-<div style={{display:"flex",gap:8}}>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1}}/>
-<button onClick={onAdd} style={{background:color||C.brand,color:"#fff",border:"none",borderRadius:R.s+4,padding:"0 16px",fontWeight:600,cursor:"pointer",minHeight:48,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",minWidth:48}}><Icon name="plus" size={20} strokeWidth={2.5} color="#fff"/></button>
-</div>
-)}
 </div>
 );
 }
 
-function WeekNav({selWk,data,selDate,goTo}){
+function WeekNav({selWk,data,selDate,goTo,scrolled}){
 const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkLabel=selWk.includes(TODAY)?"השבוע הנוכחי":`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 const canFwd=selWk[6]<TODAY;
 return(
-<div style={{background:C.surface,borderBottom:`0.5px solid ${C.border}`,padding:"10px 16px 12px"}}>
+<div style={{background:scrolled?`rgba(245,245,247,0.85)`:C.bg,backdropFilter:scrolled?"blur(20px) saturate(180%)":"none",WebkitBackdropFilter:scrolled?"blur(20px) saturate(180%)":"none",borderBottom:scrolled?`0.5px solid ${C.border}`:`0.5px solid transparent`,padding:"10px 16px 12px",transition:"background 0.2s ease, border-color 0.2s ease"}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
 <span style={{fontSize:14,color:C.ink,fontWeight:600,letterSpacing:"-0.01em"}}>{wkLabel}</span>
@@ -578,9 +643,9 @@ return(
 {wd.isActive&&<DRow label="שכר בסיס" val={fmt(BASE)} color={C.blue}/>}
 {(wd.tips||0)>0&&<DRow label="טיפים" val={fmt(wd.tips)} color={C.amber}/>}
 {(wd.cashFromClients||0)>0&&<DRow label="מזומן לחברה" val={fmt(wd.cashFromClients)}/>}
-{(wd.bonus||0)>0&&<DRow label="בונוס 🎁" val={fmt(wd.bonus)} color={C.purple}/>}
+{(wd.bonus||0)>0&&<DRow label="בונוס" val={fmt(wd.bonus)} color={C.special}/>}
 {comm>0&&<DRow label="עמלות" val={fmt(comm)} color={C.green}/>}
-{!wd.isActive&&ups.length===0&&<div style={{textAlign:"center",color:C.muted,padding:20}}>אין נתונים ליום זה</div>}
+{!wd.isActive&&ups.length===0&&<EmptyState icon="calendar" title="אין פעילות ביום זה" description="לא סומן יום עבודה ולא נוספו הגדלות. תוכל לעדכן בלשונית שטח." subtle/>}
 <div style={{display:"flex",gap:8,marginTop:20,marginBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
 
 <button onClick={()=>{goTo(modalDay);setModalDay(null);setTab("field");}} style={{...BTNP,flex:2,padding:13,fontSize:14}}>עבור ליום זה</button>
@@ -605,22 +670,22 @@ const [calMonth,setCalMonth]=useState(()=>_getYearMonth(new Date()).month);
 const [tipIn,setTipIn]=useState("");
 const [cashIn,setCashIn]=useState("");
 const [bonusIn,setBonusIn]=useState("");
-const [editMode,setEditMode]=useState(null);
-const [editVal,setEditVal]=useState("");
 const [showForm,setShowForm]=useState(false);
-const [form,setForm]=useState({name:"",address:"",phone:"",amount:"",type:"onsite"});
 const [toast,setToast]=useState("");
-const [confirmId,setConfirmId]=useState(null);
-const [confirmAmt,setConfirmAmt]=useState("");
-const [deleteConfirmId,setDeleteConfirmId]=useState(null);
-const [chipMenuId,setChipMenuId]=useState(null);
-const [paidConfirmId,setPaidConfirmId]=useState(null);
 const [modalDay,setModalDay]=useState(null);
 const [showPrivacy,setShowPrivacy]=useState(false);
 // P1-8: busy state למניעת double-submit. ערך = id של הפעולה הפעילה (או "global")
 const [busy,setBusy]=useState(null);
 const [showSettings,setShowSettings]=useState(false);
 const [deleteAccountStep,setDeleteAccountStep]=useState(0); // 0=closed, 1=confirm, 2=type-confirm
+// UX-P1: scroll position per tab + scroll shadow
+const tabScrollRef=useRef({field:0,summary:0,tuesday:0});
+const [scrolled,setScrolled]=useState(false);
+// UX-P4: pull-to-refresh state
+const [refreshing,setRefreshing]=useState(false);
+const [pullDist,setPullDist]=useState(0);
+// UX-P2: action sheet state — { type: 'upsellStatus'|'editAmount', data: ... } | null
+const [actionSheet,setActionSheet]=useState(null);
 // P1-7: localStorage לא תמיד זמין (iOS Safari Private, Mobile Safari quotaExceeded וכו')
 const safeLS={
   get:(k)=>{try{return localStorage.getItem(k);}catch{return null;}},
@@ -680,8 +745,82 @@ window.visualViewport.addEventListener("resize",onViewportResize);
 return()=>window.visualViewport.removeEventListener("resize",onViewportResize);
 },[]);
 
+// UX-P1: scroll shadow + persistent scroll position per tab
+useEffect(()=>{
+const root=document.getElementById("root");
+if(!root)return;
+const onScroll=()=>{
+  const top=root.scrollTop;
+  setScrolled(top>4);
+  tabScrollRef.current[tab]=top;
+};
+root.addEventListener("scroll",onScroll,{passive:true});
+return()=>root.removeEventListener("scroll",onScroll);
+},[tab]);
+
+// UX-P1: restore scroll on tab change
+useEffect(()=>{
+const root=document.getElementById("root");
+if(!root)return;
+const target=tabScrollRef.current[tab]||0;
+// micro-defer to let new content paint first
+requestAnimationFrame(()=>{ root.scrollTop=target; setScrolled(target>4); });
+},[tab]);
+
+// UX-P4: Pull-to-refresh — triggers reload when user pulls down at top
+useEffect(()=>{
+const root=document.getElementById("root");
+if(!root||!session)return;
+let startY=0; let dragging=false;
+const onStart=(e)=>{
+  if(root.scrollTop>2)return;
+  startY=e.touches[0].clientY; dragging=true; setPullDist(0);
+};
+const onMove=(e)=>{
+  if(!dragging)return;
+  const dy=e.touches[0].clientY-startY;
+  if(dy<=0){setPullDist(0);return;}
+  if(root.scrollTop<=0){
+    // resistance — easier first, harder as we pull
+    const eased=Math.min(120,Math.pow(dy,0.85));
+    setPullDist(eased);
+  }
+};
+const onEnd=async()=>{
+  if(!dragging)return;
+  dragging=false;
+  const d=pullDist; setPullDist(0);
+  if(d>=70){
+    setRefreshing(true); haptics.medium();
+    // re-trigger load by tickling session reference (do a full reload of data)
+    try{
+      const[wdRes,upRes]=await Promise.all([
+        dbOp(supabase.from("work_days").select("*").eq("user_id",session.user.id)),
+        dbOp(supabase.from("upsells").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false}))
+      ]);
+      if(wdRes.ok&&upRes.ok){
+        const workDays={};(wdRes.data||[]).forEach(r=>{workDays[r.date]={isActive:r.is_active,tips:r.tips,cashFromClients:r.cash_from_clients,bonus:r.bonus};});
+        const upsells=(upRes.data||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission,paid_at:r.paid_at,deferred_until:r.deferred_until,deleted_at:r.deleted_at}));
+        setData({workDays,upsells});
+      }
+    }catch{/* ignore */}
+    setRefreshing(false);
+  }
+};
+root.addEventListener("touchstart",onStart,{passive:true});
+root.addEventListener("touchmove",onMove,{passive:true});
+root.addEventListener("touchend",onEnd,{passive:true});
+root.addEventListener("touchcancel",onEnd,{passive:true});
+return()=>{
+  root.removeEventListener("touchstart",onStart);
+  root.removeEventListener("touchmove",onMove);
+  root.removeEventListener("touchend",onEnd);
+  root.removeEventListener("touchcancel",onEnd);
+};
+},[session,pullDist]);
+
 const flash=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2000); if(msg.startsWith("⚠️")) haptics.warning(); else if(msg.startsWith("✅")||msg.startsWith("🗑")||msg.startsWith("📅")||msg.startsWith("⏰")) haptics.light();};
-const goTo=useCallback((d)=>{setSelDate(d);setShowForm(false);setEditMode(null);setTipIn("");setCashIn("");setBonusIn("");},[]);
+const goTo=useCallback((d)=>{setSelDate(d);setShowForm(false);setTipIn("");setCashIn("");setBonusIn("");},[]);
 
 const upsWD=async(date,fields)=>{
 const merged={...(data.workDays[date]||{isActive:false,tips:0,cashFromClients:0,bonus:0}),...fields};
@@ -759,37 +898,31 @@ const addBonus=async()=>{
   setData(d=>({...d,workDays:{...d.workDays,[selDate]:merged}}));
   setBonusIn("");flash("✅ בונוס נוסף");
 };
-const saveEdit=()=>{
-const MAX=editMode==="cash"?999999:99999;
-const v=parseAmount(editVal,MAX);
-if(v===null){flash("⚠️ סכום לא חוקי");return;}
-const field=editMode==="tip"?"tips":editMode==="cash"?"cashFromClients":"bonus";
-upsWD(selDate,{...selDay,[field]:v});setEditMode(null);flash("✅ עודכן");
-};
-
-const addUpsell=async()=>{
+const addUpsell=async(formInput)=>{
 if(busy)return; // P1-8: מניעת double-submit
-const iso=form.type==="onsite";
-if(iso&&(!form.address.trim()||!form.amount))return;
-if(!iso&&!form.phone.trim())return;
+const iso=formInput.type==="onsite";
+if(iso&&(!formInput.address.trim()||!formInput.amount))return;
+if(!iso&&!formInput.phone.trim())return;
 let amt=0;
 if(iso){
   // P1-4: ולידציה — סכום אפסייל בין 1 ל-999999
-  const parsed=parseAmount(form.amount,999999);
+  const parsed=parseAmount(formInput.amount,999999);
   if(parsed===null){flash("⚠️ סכום לא חוקי");return;}
   amt=parsed;
 }
 setBusy("addUpsell");
-const newUp={user_id:session.user.id,date:selDate,name:form.name.trim(),type:form.type,status:"pending",address:iso?form.address.trim():null,phone:!iso?form.phone.trim():null,amount:amt,commission:amt*CR};
+const newUp={user_id:session.user.id,date:selDate,name:formInput.name.trim(),type:formInput.type,status:"pending",address:iso?formInput.address.trim():null,phone:!iso?formInput.phone.trim():null,amount:amt,commission:amt*CR};
 const res=await dbOp(supabase.from("upsells").insert(newUp).select().single());
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בהוספה — נסה שוב");return;}
 const ins=res.data;
 if(ins){const u={id:ins.id,date:ins.date,name:ins.name,type:ins.type,status:ins.status,address:ins.address,phone:ins.phone,amount:ins.amount,commission:ins.commission};setData(d=>({...d,upsells:[u,...d.upsells]}));}
-setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});setShowForm(false);flash("✅ נוספה הגדלה");
+setShowForm(false);
+haptics.success();
+flash("✅ נוספה הגדלה");
 };
 
-// P0-3: pending→done בלבד — done→paid דורש אישור מפורש. P1-8: busy למניעת double-tap
+// P0-3: pending→done — דרך ActionSheet
 const advOnsite=async(id)=>{
 if(busy)return;
 const u=data.upsells.find(u=>u.id===id);if(u.status!=="pending")return;
@@ -797,35 +930,21 @@ setBusy(id);
 const res=await dbOp(supabase.from("upsells").update({status:"done"}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"done"})}));setChipMenuId(null);
+setData(d=>({...d,upsells:d.upsells.map(x=>x.id!==id?x:{...x,status:"done"})}));
+haptics.success();
 };
-const startCnf=(id)=>{setConfirmId(id);setConfirmAmt("");setChipMenuId(null);};
-const submitCnf=async()=>{
-if(busy)return;
-// P1-4: ולידציה — סכום אישור בין 1 ל-999999
-const a=parseAmount(confirmAmt,999999);
-if(a===null){flash("⚠️ סכום לא חוקי");return;}
-const c=a*CR;
-setBusy(confirmId);
-const res=await dbOp(supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",confirmId));
-setBusy(null);
-if(!res.ok){flash("⚠️ שגיאה באישור — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==confirmId?u:{...u,status:"confirmed",amount:a,commission:c})}));setConfirmId(null);flash("✅ אושר");
-};
-// P0-3: מחיקה רכה (soft delete) עם אישור שני-שלב
+// P0-3: מחיקה רכה (soft delete) — נקרא אחרי אישור ActionSheet
 const delUp=async(id)=>{
 if(busy)return;
-if(deleteConfirmId!==id){setDeleteConfirmId(id);return;}
 setBusy(id);
 const now=new Date().toISOString();
 const res=await dbOp(supabase.from("upsells").update({deleted_at:now}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה במחיקה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));
-setDeleteConfirmId(null);flash("🗑 נמחק");
+haptics.success();
+flash("✅ נמחק");
 };
-// paid דרך אישור מפורש בלבד (כל המסלולים)
-const requestPaid=(id)=>{setChipMenuId(null);setPaidConfirmId(id);};
 const executePaid=async(id)=>{
 if(busy)return;
 setBusy(id);
@@ -833,7 +952,7 @@ const now=new Date().toISOString();
 const res=await dbOp(supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בסימון כשולם — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);haptics.success();flash("✅ שולם");
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));haptics.success();flash("✅ שולם");
 };
 const deferMonthly=async(id)=>{
 if(busy)return;
@@ -841,7 +960,7 @@ setBusy(id);
 const res=await dbOp(supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בדחייה — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setChipMenuId(null);flash("📅 נדחה לחישוב חודשי");
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));flash("נדחה לחישוב חודשי");
 };
 const deferTuesday=async(id)=>{
 if(busy)return;
@@ -850,7 +969,7 @@ const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));
 const res=await dbOp(supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בדחייה — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setChipMenuId(null);flash("⏰ נדחה לשלישי הבא");
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));flash("נדחה לשלישי הבא");
 };
 
 // P1-2: ייצוא כל הנתונים של המשתמש כקובץ JSON להורדה (GDPR right of access)
@@ -895,17 +1014,19 @@ const deleteMyAccount=async()=>{
   // ה-onAuthStateChange יזרוק אותנו ל-AuthScreen
 };
 
-const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
-const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null),
-deleteConfirmId,onCancelDelete:()=>setDeleteConfirmId(null),
-chipMenuId,setChipMenuId,paidConfirmId,onRequestPaid:requestPaid,onExecutePaid:executePaid,onCancelPaid:()=>setPaidConfirmId(null),
-onDeferMonthly:deferMonthly,onDeferTuesday:deferTuesday};
+const pill=(a,col=C.brand)=>({flex:1,background:a?col:C.surfaceAlt,border:"none",borderRadius:R.s+4,padding:"11px",fontSize:14,fontWeight:600,color:a?"#fff":C.inkSecondary,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
+
+// UX-P2: Open status action sheet for upsell — handles all status transitions
+const openStatusSheet=(u)=>setActionSheet({type:"upsellStatus",u});
+const openDeleteSheet=(u)=>setActionSheet({type:"upsellDelete",u});
+const upProps={onOpenStatusSheet:openStatusSheet,onDelete:openDeleteSheet};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(60px + env(safe-area-inset-bottom) + 12px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 16px"}}>
 {selDay.isActive?(
-<div onClick={toggleActive} style={{background:C.success,borderRadius:R.l,padding:"20px 22px",boxShadow:"0 8px 24px rgba(52,199,89,0.32)",cursor:"pointer",userSelect:"none",position:"relative",overflow:"hidden"}}>
+// UX-P4: Hero card הופך לaction sheet בלחיצה — מונע ביטול בטעות
+<button onClick={()=>{haptics.light();setActionSheet({type:"cancelDay"});}} style={{width:"100%",background:C.success,borderRadius:R.l,padding:"20px 22px",boxShadow:"0 8px 24px rgba(52,199,89,0.32)",cursor:"pointer",userSelect:"none",position:"relative",overflow:"hidden",border:"none",textAlign:"right",WebkitTapHighlightColor:"transparent"}}>
 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16}}>
 <div style={{flex:1,minWidth:0}}>
 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
@@ -913,10 +1034,10 @@ const renderField=()=>(
 <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,0.95)",letterSpacing:"0.02em"}}>עבדתי היום</div>
 </div>
 <div style={{fontSize:38,fontWeight:700,color:"#fff",letterSpacing:"-0.03em",lineHeight:1}}>{fmt(BASE)}</div>
-<div style={{fontSize:12,color:"rgba(255,255,255,0.78)",marginTop:6,fontWeight:500}}>שכר בסיס · הקש לביטול</div>
+<div style={{fontSize:12,color:"rgba(255,255,255,0.78)",marginTop:6,fontWeight:500}}>שכר בסיס</div>
 </div>
 </div>
-</div>
+</button>
 ):(
 <button onClick={toggleActive} style={{width:"100%",background:C.brand,border:"none",borderRadius:R.l,padding:"22px 24px",boxShadow:"0 8px 24px rgba(0,122,255,0.32)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,WebkitTapHighlightColor:"transparent",color:"#fff"}}>
 <div style={{textAlign:"right",flex:1,minWidth:0}}>
@@ -929,48 +1050,15 @@ const renderField=()=>(
 )}
 </div>
 <div style={{margin:"0 16px"}}>
-<AmountRow label="טיפים במזומן" total={selDay.tips||0} addVal={tipIn} setAdd={setTipIn} onAdd={addTip} mode="tip" color={C.amber} borderColor={C.amberBdr} bgColor={C.amberBg} editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>
-<AmountRow label="מזומן מלקוחות לחברה" total={selDay.cashFromClients||0} addVal={cashIn} setAdd={setCashIn} onAdd={addCash} mode="cash" editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>
-{isTue(selDate)&&<AmountRow label="🎁 בונוס מהחברה" total={selDay.bonus||0} addVal={bonusIn} setAdd={setBonusIn} onAdd={addBonus} mode="bonus" color={C.purple} borderColor={C.purpleBdr} bgColor={C.purpleBg} editMode={editMode} editVal={editVal} setEditMode={setEditMode} setEditVal={setEditVal} saveEdit={saveEdit}/>}
+<AmountRow label="טיפים במזומן" icon="sparkle2" total={selDay.tips||0} addVal={tipIn} setAdd={setTipIn} onAdd={addTip} mode="tip" color={C.warning} onEdit={()=>setActionSheet({type:"editAmount",mode:"tip",currentVal:selDay.tips||0,labelText:"טיפים"})}/>
+<AmountRow label="מזומן מלקוחות לחברה" icon="dollar" total={selDay.cashFromClients||0} addVal={cashIn} setAdd={setCashIn} onAdd={addCash} mode="cash" color={C.ink} onEdit={()=>setActionSheet({type:"editAmount",mode:"cash",currentVal:selDay.cashFromClients||0,labelText:"מזומן מלקוחות"})}/>
+{isTue(selDate)&&<AmountRow label="בונוס מהחברה" icon="gift" total={selDay.bonus||0} addVal={bonusIn} setAdd={setBonusIn} onAdd={addBonus} mode="bonus" color={C.special} onEdit={()=>setActionSheet({type:"editAmount",mode:"bonus",currentVal:selDay.bonus||0,labelText:"בונוס"})}/>}
 </div>
 <div style={{margin:"0 16px 12px"}}>
-{!showForm?(
 <button onClick={()=>{haptics.light();setShowForm(true);}} style={{...BTNP,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
 <Icon name="plus" size={20} strokeWidth={2.5} color="#fff"/>
 <span>הוסף הגדלה</span>
 </button>
-):(
-<div style={{background:C.white,border:`1.5px solid ${C.blue}`,borderRadius:16,padding:16}}>
-<div style={{fontSize:16,fontWeight:800,color:C.navy,marginBottom:16}}>הגדלה חדשה</div>
-<div style={{marginBottom:14}}>
-<label style={LBL}>סוג</label>
-<div style={{display:"flex",gap:8}}>
-<button onClick={()=>setForm(f=>({...f,type:"onsite"}))} style={pill(form.type==="onsite")}>במקום</button>
-<button onClick={()=>setForm(f=>({...f,type:"referral"}))} style={pill(form.type==="referral",C.amber)}>הפניה</button>
-</div>
-</div>
-<div style={{marginBottom:12}}>
-<label style={LBL}>שם (אופציונלי)</label>
-<input type="text" placeholder="שם הלקוח" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} style={INP}/>
-</div>
-{form.type==="onsite"&&<>
-<div style={{marginBottom:12}}><label style={LBL}>כתובת *</label><input type="text" value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))} style={INP} placeholder="כתובת הלקוח"/></div>
-<div style={{marginBottom:16}}>
-<label style={LBL}>סכום הגדלה (₪) *</label>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} style={INP}/>
-{form.amount&&parseFloat(form.amount)>0&&<div style={{marginTop:8,background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:8,padding:"8px 12px",fontSize:13,color:C.green,fontWeight:700}}>עמלה: {fmt(parseFloat(form.amount)*CR)}</div>}
-</div>
-</>}
-{form.type==="referral"&&<>
-<div style={{marginBottom:12}}><label style={LBL}>טלפון *</label><input type="tel" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} style={INP} placeholder="050-0000000" dir="ltr"/></div>
-<div style={{background:C.amberBg,border:`1px solid ${C.amberBdr}`,borderRadius:10,padding:"10px 14px",fontSize:13,color:C.amber,marginBottom:16}}>📞 מסור למנהל ביום שלישי</div>
-</>}
-<div style={{display:"flex",gap:8}}>
-<button onClick={addUpsell} disabled={busy==="addUpsell"} style={{...BTNP,flex:2,padding:14,opacity:busy==="addUpsell"?0.6:1}}>{busy==="addUpsell"?"שומר...":"הוסף"}</button>
-<button onClick={()=>{setShowForm(false);setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});}} disabled={busy==="addUpsell"} style={{...BTNS,flex:1,padding:14,opacity:busy==="addUpsell"?0.6:1}}>ביטול</button>
-</div>
-</div>
-)}
 </div>
 {selUpsells.length>0&&(
 <div style={{...card(),margin:"0 16px"}}>
@@ -1012,7 +1100,7 @@ const renderTuesday=()=>{
 // P0-1: תצוגת מחזור שלישי–שני (לא שבוע קלנדרי)
 const cycleStart=dateObj(deliveryCycle[0]),cycleEnd=dateObj(deliveryCycle[6]);
 const cycleLabel=`${cycleStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${cycleEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
-const deliveryLbl=deliveryTuesday===TODAY?"מסירה היום ✓":`מסירה ${dateObj(deliveryTuesday).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
+const deliveryLbl=deliveryTuesday===TODAY?"מסירה היום":`מסירה ${dateObj(deliveryTuesday).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 const canFwd=shift(deliveryTuesday,7)<=TODAY;
 // עמלות הניתנות לניהול (done/confirmed במחזור + deferred_tuesday לשלישי זה)
 const cycleCommUpsells=data.upsells.filter(u=>
@@ -1074,16 +1162,74 @@ return(
 </div>
 );
 }).filter(Boolean)}
-{deliveryCycle.filter(d=>data.workDays[d]?.isActive).length===0&&<div style={{color:C.muted,fontSize:14,textAlign:"center",padding:16}}>אין ימי עבודה במחזור זה</div>}
+{deliveryCycle.filter(d=>data.workDays[d]?.isActive).length===0&&<EmptyState icon="calendar" title="אין ימי עבודה במחזור" description="לא סימנת ימי עבודה במחזור זה. עבור ל-שטח להתחיל לעקוב." subtle/>}
 </div>
 </div>
 );
 };
 
+// UX-P2: Action sheet renderer — bridge actionSheet state to UI
+const renderActionSheet=()=>{
+  if(!actionSheet)return null;
+  const closeSheet=()=>setActionSheet(null);
+  if(actionSheet.type==="upsellStatus"){
+    const u=actionSheet.u;
+    const iso=u.type==="onsite";
+    const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
+    const title=u.name||u.address||u.phone||"הגדלה ללא שם";
+    const desc=u.amount>0?`${fmt2(u.amount)} · עמלה ${fmt2(u.commission||0)}`:undefined;
+    const actions=[];
+    if(iso){
+      if(u.status==="pending"){
+        actions.push({label:"סמן כבוצע",icon:"check",tone:"success",onClick:()=>advOnsite(u.id)});
+      }else if(u.status==="done"){
+        actions.push({label:"גביתי — סמן כשולם",icon:"dollar",tone:"success",onClick:()=>setActionSheet({type:"upsellPaidConfirm",u})});
+        actions.push({label:"דחה לחישוב חודשי",icon:"calendar",tone:"special",onClick:()=>deferMonthly(u.id)});
+        actions.push({label:"דחה לשלישי הבא",icon:"clock",tone:"brand",onClick:()=>deferTuesday(u.id)});
+      }
+    }else{
+      if(u.status==="pending"){
+        actions.push({label:"הזן סכום ואשר",icon:"check",tone:"success",onClick:()=>setActionSheet({type:"referralConfirm",u})});
+      }else if(u.status==="confirmed"){
+        actions.push({label:"גביתי — סמן כשולם",icon:"dollar",tone:"success",onClick:()=>setActionSheet({type:"upsellPaidConfirm",u})});
+        actions.push({label:"דחה לחישוב חודשי",icon:"calendar",tone:"special",onClick:()=>deferMonthly(u.id)});
+        actions.push({label:"דחה לשלישי הבא",icon:"clock",tone:"brand",onClick:()=>deferTuesday(u.id)});
+      }
+    }
+    if(actions.length===0)return null;
+    return <ActionSheet title={title} description={desc} actions={actions} onClose={closeSheet}/>;
+  }
+  if(actionSheet.type==="upsellDelete"){
+    const u=actionSheet.u;
+    const title=u.name||u.address||u.phone||"הגדלה";
+    return <ActionSheet title={`למחוק את "${title}"?`} description="הפעולה בלתי הפיכה. ההגדלה תוסר מכל החישובים." actions={[{label:"מחק",icon:"trash",tone:"danger",onClick:()=>delUp(u.id)}]} onClose={closeSheet}/>;
+  }
+  if(actionSheet.type==="upsellPaidConfirm"){
+    const u=actionSheet.u;
+    const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
+    return <ActionSheet title="לסמן כשולם?" description={u.commission>0?`עמלה תועבר ל"שולמו": ${fmt2(u.commission)}. הפעולה סופית.`:"הפעולה סופית ובלתי הפיכה."} actions={[{label:"סמן כשולם",icon:"check",tone:"success",onClick:()=>executePaid(u.id)}]} onClose={closeSheet}/>;
+  }
+  if(actionSheet.type==="referralConfirm"){
+    const u=actionSheet.u;
+    const fmt2=(n)=>`₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
+    return <FormSheet title="אישור הפניה" description="הזן את סכום העסקה הסופי לחישוב העמלה." inputLabel="סכום העסקה" placeholder="0" submitLabel="אשר" onSubmit={async(val)=>{const a=parseAmount(val,999999);if(a===null){flash("⚠️ סכום לא חוקי");return;}const c=a*CR;setBusy(u.id);const res=await dbOp(supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",u.id));setBusy(null);if(!res.ok){flash("⚠️ שגיאה באישור");return;}setData(d=>({...d,upsells:d.upsells.map(x=>x.id!==u.id?x:{...x,status:"confirmed",amount:a,commission:c})}));closeSheet();flash("✅ אושר");}} helperText={(v)=>{const a=parseFloat(v);return a>0?`עמלה תהיה: ${fmt2(a*CR)}`:"";}} onClose={closeSheet}/>;
+  }
+  if(actionSheet.type==="cancelDay"){
+    return <ActionSheet title="לבטל את יום העבודה?" description="הסכום הבסיסי יוסר מהסיכום היומי. ניתן לסמן שוב בכל רגע." actions={[{label:"בטל את היום",icon:"x",tone:"danger",onClick:toggleActive}]} onClose={closeSheet}/>;
+  }
+  if(actionSheet.type==="editAmount"){
+    const {mode,currentVal,labelText}=actionSheet;
+    const MAX=mode==="cash"?999999:99999;
+    return <FormSheet title={`עריכת ${labelText}`} description="הזן את הסכום הכולל החדש." inputLabel="סכום כולל" placeholder="0" initial={String(currentVal||"")} submitLabel="שמור" onSubmit={(val)=>{const v=parseAmount(val,MAX);if(v===null){flash("⚠️ סכום לא חוקי");return;}const field=mode==="tip"?"tips":mode==="cash"?"cashFromClients":"bonus";upsWD(selDate,{...selDay,[field]:v});closeSheet();flash("✅ עודכן");}} onClose={closeSheet}/>;
+  }
+  return null;
+};
+
 const overlays=(<>
-{chipMenuId&&<div onClick={()=>setChipMenuId(null)} style={{position:"fixed",inset:0,zIndex:98,WebkitTapHighlightColor:"transparent"}}/>}
 {!cookieConsent&&<CookieBanner onAccept={acceptCookies} onOpenPrivacy={()=>setShowPrivacy(true)}/>}
 {showPrivacy&&<PrivacyModal onClose={()=>setShowPrivacy(false)}/>}
+{renderActionSheet()}
+{showForm&&<AddUpsellSheet selDate={selDate} onSubmit={addUpsell} onClose={()=>{if(busy)return;setShowForm(false);}} busy={busy==="addUpsell"}/>}
 {showSettings&&(
   <div style={{position:"fixed",inset:0,background:C.overlay,zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={()=>{setShowSettings(false);setDeleteAccountStep(0);}}>
     <div onClick={e=>e.stopPropagation()} style={{background:C.white,width:"100%",maxHeight:"85dvh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column"}}>
@@ -1142,9 +1288,23 @@ const overlays=(<>
 )}
 </>);
 
-if(authLoading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
+if(authLoading)return<div style={{background:C.bg,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:32,height:32,borderRadius:"50%",border:`3px solid ${C.border}`,borderTopColor:C.brand,animation:"spin 0.8s linear infinite"}}/></div>;
 if(!session)return<>{<AuthScreen onPrivacy={()=>setShowPrivacy(true)}/>}{overlays}</>;
-if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
+// UX-P6: Skeleton loading instead of full-screen spinner
+if(loading)return(
+<div style={{background:C.bg,minHeight:"100dvh",fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",paddingTop:"calc(20px + env(safe-area-inset-top))"}}>
+  <div style={{padding:"0 16px",marginBottom:24,display:"flex",alignItems:"center",gap:10}}>
+    <div className="skeleton" style={{width:36,height:36,borderRadius:10}}/>
+    <div style={{flex:1}}>
+      <div className="skeleton" style={{width:140,height:16,marginBottom:6}}/>
+      <div className="skeleton" style={{width:80,height:11}}/>
+    </div>
+  </div>
+  <div style={{padding:"0 16px",marginBottom:16}}><div className="skeleton" style={{height:108,borderRadius:20}}/></div>
+  <SkeletonCard h={84}/>
+  <SkeletonCard h={84}/>
+</div>
+);
 
 const TABS=[
   {id:"field",icon:"bolt",label:"שטח"},
@@ -1153,23 +1313,27 @@ const TABS=[
 ];
 
 return(
-<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none",WebkitTextSizeAdjust:"100%"}}>
-<div style={{background:`rgba(255,255,255,0.92)`,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`0.5px solid ${C.border}`,paddingTop:"calc(12px + env(safe-area-inset-top))",paddingBottom:"12px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
+<div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.ink,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none",WebkitTextSizeAdjust:"100%"}}>
+{/* UX-P4: Pull-to-refresh indicator */}
+{(pullDist>0||refreshing)&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top) + 8px)",left:"50%",transform:`translateX(-50%) translateY(${refreshing?0:Math.min(60,pullDist*0.6)-32}px)`,zIndex:200,width:36,height:36,borderRadius:"50%",background:`rgba(255,255,255,0.94)`,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",boxShadow:"0 4px 12px rgba(0,0,0,0.12)",display:"flex",alignItems:"center",justifyContent:"center",transition:refreshing?"transform 0.2s ease":"none",opacity:Math.min(1,pullDist/60)+(refreshing?1:0)}}>
+  <div style={{width:18,height:18,borderRadius:"50%",border:`2.5px solid ${C.brand}`,borderTopColor:"transparent",animation:refreshing?"spin 0.8s linear infinite":"none",transform:!refreshing?`rotate(${pullDist*3}deg)`:"none"}}/>
+</div>}
+<div className="sticky-stack" style={{background:scrolled?`rgba(245,245,247,0.85)`:C.bg,backdropFilter:scrolled?"blur(20px) saturate(180%)":"none",WebkitBackdropFilter:scrolled?"blur(20px) saturate(180%)":"none",borderBottom:scrolled?`0.5px solid ${C.border}`:`0.5px solid transparent`,paddingTop:"calc(10px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",transition:"background 0.2s ease, border-color 0.2s ease"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<div style={{display:"flex",alignItems:"center",gap:10}}>
+<div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
 <img src="/apple-touch-icon.png" style={{width:36,height:36,borderRadius:10,objectFit:"cover",flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.08)"}}/>
-<div>
-<div style={{fontSize:17,fontWeight:700,color:C.ink,lineHeight:1.15,letterSpacing:"-0.01em"}}>כרישים בניקיון</div>
+<div style={{minWidth:0}}>
+<div style={{fontSize:17,fontWeight:700,color:C.ink,lineHeight:1.15,letterSpacing:"-0.01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>כרישים בניקיון</div>
 <div style={{fontSize:12,color:C.inkTertiary,fontWeight:500,marginTop:2}}>{tab==="field"?"יום עבודה":tab==="summary"?"סיכום חודשי":"מחזור שלישי"}</div>
 </div>
 </div>
-<div style={{display:"flex",alignItems:"center",gap:8}}>
-<button onClick={()=>setShowSettings(true)} title="הגדרות" style={{background:"transparent",border:"none",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.inkSecondary,WebkitTapHighlightColor:"transparent",transition:"color 0.15s ease"}}><Icon name="settings" size={22} strokeWidth={1.8}/></button>
-<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"transparent",border:"none",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.inkSecondary,WebkitTapHighlightColor:"transparent",transition:"color 0.15s ease"}}><Icon name="logout" size={22} strokeWidth={1.8}/></button>
+<div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+<button onClick={()=>setShowSettings(true)} title="הגדרות" style={{background:"transparent",border:"none",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.inkSecondary,WebkitTapHighlightColor:"transparent",transition:"color 0.15s ease"}}><Icon name="settings" size={22} strokeWidth={1.8}/></button>
+<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"transparent",border:"none",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.inkSecondary,WebkitTapHighlightColor:"transparent",transition:"color 0.15s ease"}}><Icon name="logout" size={22} strokeWidth={1.8}/></button>
 </div>
 </div>
 </div>
-{tab==="field"&&<WeekNav selWk={selWk} data={data} selDate={selDate} goTo={goTo}/>}
+{tab==="field"&&<div className="sticky-week" style={{top:"calc(56px + env(safe-area-inset-top) + 4px)"}}><WeekNav selWk={selWk} data={data} selDate={selDate} goTo={goTo} scrolled={scrolled}/></div>}
 {toast&&<div style={{position:"fixed",top:"calc(16px + env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",background:"rgba(28,28,30,0.94)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#fff",borderRadius:R.full,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap",boxShadow:"0 8px 24px rgba(0,0,0,0.18)",animation:"slideUp 0.3s ease-out"}}>{toast}</div>}
 <div>
 {tab==="field"&&renderField()}
