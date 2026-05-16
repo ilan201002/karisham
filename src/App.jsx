@@ -1,9 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/react";
 
 const SUPABASE_URL = "https://xhouuigwhjwsmttdpudl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jYGyXWsmisYcPjjVdWrOZw_ik7c3bRr";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// P0-4: error wrapper לכל קריאות Supabase mutations.
+// מחזיר { ok, data, error }. אם ok=false — הקורא חייב להציג toast ולא לעדכן state אופטימי.
+// כל error נרשם ל-console + נשלח ל-Sentry בפרודקשן.
+async function dbOp(promise) {
+  try {
+    const result = await promise;
+    if (result?.error) {
+      console.error("[DB Error]", result.error.message || result.error, result.error);
+      Sentry.captureException(result.error, { tags: { source: "supabase_db" } });
+      return { ok: false, data: null, error: result.error };
+    }
+    return { ok: true, data: result?.data ?? null, error: null };
+  } catch (err) {
+    console.error("[DB Exception]", err);
+    Sentry.captureException(err, { tags: { source: "supabase_exception" } });
+    return { ok: false, data: null, error: err };
+  }
+}
 
 const BASE = 580;
 const CR = 0.25;
@@ -477,13 +497,25 @@ useEffect(()=>{
 if(!session)return;
 const load=async()=>{
 setLoading(true);
-const[{data:wdRows},{data:upRows}]=await Promise.all([
-supabase.from("work_days").select("*").eq("user_id",session.user.id),
-supabase.from("upsells").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false})
+const[wdRes,upRes]=await Promise.all([
+dbOp(supabase.from("work_days").select("*").eq("user_id",session.user.id)),
+dbOp(supabase.from("upsells").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false}))
 ]);
+// אם session פג / JWT לא תקף — לכוף sign-out כדי שהמשתמש יחזור ל-AuthScreen
+if(!wdRes.ok||!upRes.ok){
+const msg=(wdRes.error?.message||upRes.error?.message||"").toLowerCase();
+if(msg.includes("jwt")||msg.includes("expired")||msg.includes("invalid")||msg.includes("not authenticated")){
+await supabase.auth.signOut();
+setLoading(false);
+return;
+}
+flash("⚠️ שגיאה בטעינה — בדוק חיבור לאינטרנט");
+setLoading(false);
+return;
+}
 const workDays={};
-(wdRows||[]).forEach(r=>{workDays[r.date]={isActive:r.is_active,tips:r.tips,cashFromClients:r.cash_from_clients,bonus:r.bonus};});
-const upsells=(upRows||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission,paid_at:r.paid_at,deferred_until:r.deferred_until,deleted_at:r.deleted_at}));
+(wdRes.data||[]).forEach(r=>{workDays[r.date]={isActive:r.is_active,tips:r.tips,cashFromClients:r.cash_from_clients,bonus:r.bonus};});
+const upsells=(upRes.data||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission,paid_at:r.paid_at,deferred_until:r.deferred_until,deleted_at:r.deleted_at}));
 setData({workDays,upsells});
 setLoading(false);
 };
@@ -511,7 +543,8 @@ const goTo=useCallback((d)=>{setSelDate(d);setShowForm(false);setEditMode(null);
 
 const upsWD=async(date,fields)=>{
 const merged={...(data.workDays[date]||{isActive:false,tips:0,cashFromClients:0,bonus:0}),...fields};
-await supabase.from("work_days").upsert({user_id:session.user.id,date,is_active:merged.isActive||false,tips:merged.tips||0,cash_from_clients:merged.cashFromClients||0,bonus:merged.bonus||0},{onConflict:"user_id,date"});
+const res=await dbOp(supabase.from("work_days").upsert({user_id:session.user.id,date,is_active:merged.isActive||false,tips:merged.tips||0,cash_from_clients:merged.cashFromClients||0,bonus:merged.bonus||0},{onConflict:"user_id,date"}));
+if(!res.ok){flash("⚠️ שגיאה בשמירה — נסה שוב");return;}
 setData(d=>({...d,workDays:{...d.workDays,[date]:merged}}));
 };
 
@@ -560,28 +593,55 @@ if(iso&&(!form.address.trim()||!form.amount))return;
 if(!iso&&!form.phone.trim())return;
 const amt=iso?parseFloat(form.amount):0;
 const newUp={user_id:session.user.id,date:selDate,name:form.name.trim(),type:form.type,status:"pending",address:iso?form.address.trim():null,phone:!iso?form.phone.trim():null,amount:amt,commission:amt*CR};
-const{data:ins}=await supabase.from("upsells").insert(newUp).select().single();
+const res=await dbOp(supabase.from("upsells").insert(newUp).select().single());
+if(!res.ok){flash("⚠️ שגיאה בהוספה — נסה שוב");return;}
+const ins=res.data;
 if(ins){const u={id:ins.id,date:ins.date,name:ins.name,type:ins.type,status:ins.status,address:ins.address,phone:ins.phone,amount:ins.amount,commission:ins.commission};setData(d=>({...d,upsells:[u,...d.upsells]}));}
 setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});setShowForm(false);flash("✅ נוספה הגדלה");
 };
 
 // P0-3: pending→done בלבד — done→paid דורש אישור מפורש
-const advOnsite=async(id)=>{const u=data.upsells.find(u=>u.id===id);if(u.status!=="pending")return;await supabase.from("upsells").update({status:"done"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"done"})}));setChipMenuId(null);};
+const advOnsite=async(id)=>{
+const u=data.upsells.find(u=>u.id===id);if(u.status!=="pending")return;
+const res=await dbOp(supabase.from("upsells").update({status:"done"}).eq("id",id));
+if(!res.ok){flash("⚠️ שגיאה — נסה שוב");return;}
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"done"})}));setChipMenuId(null);
+};
 const startCnf=(id)=>{setConfirmId(id);setConfirmAmt("");setChipMenuId(null);};
-const submitCnf=async()=>{const a=parseFloat(confirmAmt);if(!a||a<=0)return;const c=a*CR;await supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",confirmId);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==confirmId?u:{...u,status:"confirmed",amount:a,commission:c})}));setConfirmId(null);flash("✅ אושר");};
+const submitCnf=async()=>{
+const a=parseFloat(confirmAmt);if(!a||a<=0)return;const c=a*CR;
+const res=await dbOp(supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",confirmId));
+if(!res.ok){flash("⚠️ שגיאה באישור — נסה שוב");return;}
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==confirmId?u:{...u,status:"confirmed",amount:a,commission:c})}));setConfirmId(null);flash("✅ אושר");
+};
 // P0-3: מחיקה רכה (soft delete) עם אישור שני-שלב
 const delUp=async(id)=>{
 if(deleteConfirmId!==id){setDeleteConfirmId(id);return;}
 const now=new Date().toISOString();
-await supabase.from("upsells").update({deleted_at:now}).eq("id",id);
+const res=await dbOp(supabase.from("upsells").update({deleted_at:now}).eq("id",id));
+if(!res.ok){flash("⚠️ שגיאה במחיקה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));
 setDeleteConfirmId(null);flash("🗑 נמחק");
 };
 // paid דרך אישור מפורש בלבד (כל המסלולים)
 const requestPaid=(id)=>{setChipMenuId(null);setPaidConfirmId(id);};
-const executePaid=async(id)=>{const now=new Date().toISOString();await supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);flash("✅ שולם");};
-const deferMonthly=async(id)=>{await supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setChipMenuId(null);flash("📅 נדחה לחישוב חודשי");};
-const deferTuesday=async(id)=>{const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));await supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id);setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setChipMenuId(null);flash("⏰ נדחה לשלישי הבא");};
+const executePaid=async(id)=>{
+const now=new Date().toISOString();
+const res=await dbOp(supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id));
+if(!res.ok){flash("⚠️ שגיאה בסימון כשולם — נסה שוב");return;}
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);flash("✅ שולם");
+};
+const deferMonthly=async(id)=>{
+const res=await dbOp(supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id));
+if(!res.ok){flash("⚠️ שגיאה בדחייה — נסה שוב");return;}
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setChipMenuId(null);flash("📅 נדחה לחישוב חודשי");
+};
+const deferTuesday=async(id)=>{
+const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));
+const res=await dbOp(supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id));
+if(!res.ok){flash("⚠️ שגיאה בדחייה — נסה שוב");return;}
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setChipMenuId(null);flash("⏰ נדחה לשלישי הבא");
+};
 
 const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
 const upProps={onAdvanceOnsite:advOnsite,onStartConfirm:startCnf,onDelete:delUp,confirmId,confirmAmt,setConfirmAmt,onSubmitCnf:submitCnf,onCancelCnf:()=>setConfirmId(null),
