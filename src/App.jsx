@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/react";
+import { Capacitor } from "@capacitor/core";
+
+// iOS-3: רטט קצר/בינוני/חזק בפעולות חשובות — שקט לחלוטין ב-web
+const haptics = {
+  light: async () => { if (!Capacitor.isNativePlatform()) return; try { const { Haptics, ImpactStyle } = await import("@capacitor/haptics"); await Haptics.impact({ style: ImpactStyle.Light }); } catch {} },
+  medium: async () => { if (!Capacitor.isNativePlatform()) return; try { const { Haptics, ImpactStyle } = await import("@capacitor/haptics"); await Haptics.impact({ style: ImpactStyle.Medium }); } catch {} },
+  success: async () => { if (!Capacitor.isNativePlatform()) return; try { const { Haptics, NotificationType } = await import("@capacitor/haptics"); await Haptics.notification({ type: NotificationType.Success }); } catch {} },
+  warning: async () => { if (!Capacitor.isNativePlatform()) return; try { const { Haptics, NotificationType } = await import("@capacitor/haptics"); await Haptics.notification({ type: NotificationType.Warning }); } catch {} },
+};
 
 const SUPABASE_URL = "https://xhouuigwhjwsmttdpudl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jYGyXWsmisYcPjjVdWrOZw_ik7c3bRr";
@@ -586,7 +595,7 @@ window.visualViewport.addEventListener("resize",onViewportResize);
 return()=>window.visualViewport.removeEventListener("resize",onViewportResize);
 },[]);
 
-const flash=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2000);};
+const flash=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2000); if(msg.startsWith("⚠️")) haptics.warning(); else if(msg.startsWith("✅")||msg.startsWith("🗑")||msg.startsWith("📅")||msg.startsWith("⏰")) haptics.light();};
 const goTo=useCallback((d)=>{setSelDate(d);setShowForm(false);setEditMode(null);setTipIn("");setCashIn("");setBonusIn("");},[]);
 
 const upsWD=async(date,fields)=>{
@@ -630,7 +639,7 @@ const selUpsells=data.upsells.filter(u=>u.date===selDate);
 const chipLabel=tab==="field"?`${wkActive} ימים השבוע · ${fmt(wkTotal)}`:tab==="summary"?`${MONTH_HEB[_selM-1]} · ${fmt(moTotal)}`:`שבוע · ${fmt(wkTotal)}`;
 const chipColor=wkActive>0?{bg:C.greenBg,border:C.greenBdr,text:C.green}:{bg:C.surfaceAlt,border:C.border,text:C.muted};
 
-const toggleActive=()=>upsWD(selDate,{...selDay,isActive:!selDay.isActive});
+const toggleActive=()=>{haptics.medium();upsWD(selDate,{...selDay,isActive:!selDay.isActive});};
 
 // P1-1: increment אטומי דרך RPC — מונע race condition כשהמשתמש פתוח בכמה מכשירים
 async function incrementField(date, field, delta) {
@@ -739,7 +748,7 @@ const now=new Date().toISOString();
 const res=await dbOp(supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בסימון כשולם — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);flash("✅ שולם");
+setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);haptics.success();flash("✅ שולם");
 };
 const deferMonthly=async(id)=>{
 if(busy)return;

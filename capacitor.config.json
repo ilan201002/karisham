@@ -1,0 +1,36 @@
+{
+  "appId": "com.karisham.app",
+  "appName": "כרישים בניקיון",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "always",
+    "scheme": "Karisham",
+    "backgroundColor": "#F4F6F9",
+    "preferredContentMode": "mobile",
+    "limitsNavigationsToAppBoundDomains": false,
+    "scrollEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#0A1F44",
+      "androidScaleType": "CENTER_CROP",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#FFFFFF",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "Keyboard": {
+      "resize": "native",
+      "style": "DEFAULT",
+      "resizeOnFullScreen": true
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#FFFFFF"
+    }
+  }
+}

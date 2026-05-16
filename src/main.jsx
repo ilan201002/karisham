@@ -2,6 +2,32 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import App from './App.jsx'
+import { Capacitor } from '@capacitor/core'
+
+// iOS native integration — רץ רק כשהאפליקציה רצה בתוך WebView של iOS
+if (Capacitor.isNativePlatform()) {
+  // טעינה אסינכרונית של תוספים native רק במכשיר native
+  (async () => {
+    try {
+      const { StatusBar, Style } = await import('@capacitor/status-bar')
+      const { SplashScreen } = await import('@capacitor/splash-screen')
+      const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard')
+
+      // שורת מצב: רקע לבן, אייקונים כהים (תואם לכותרת האפליקציה)
+      await StatusBar.setStyle({ style: Style.Light })
+      await StatusBar.setBackgroundColor({ color: '#FFFFFF' })
+      await StatusBar.setOverlaysWebView({ overlay: false })
+
+      // מקלדת: לא דוחפת את ה-UI החוצה מהמסך, מתנהגת native
+      await Keyboard.setResizeMode({ mode: KeyboardResize.Native })
+
+      // הסתרת splash screen אחרי שהאפליקציה מוכנה
+      await SplashScreen.hide()
+    } catch (e) {
+      console.warn('[Capacitor] init failed:', e)
+    }
+  })()
+}
 
 // P0-4 שכבה 2: ניטור שגיאות אוטומטי בפרודקשן
 // פועל רק כשבונים production (npm run build). במצב dev — שקט לחלוטין.
