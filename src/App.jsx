@@ -108,40 +108,121 @@ function getMonthGrid(year,month) {
   return cells;
 }
 
-const ST_ON = { pending:{l:"ממתין",i:"⏳",c:"#B45309"}, done:{l:"בוצע",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"}, deferred_monthly:{l:"נדחה לחודש",i:"📅",c:"#6D28D9"}, deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2"} };
-const ST_REF = { pending:{l:"למנהל טלפון",i:"📞",c:"#B45309"}, confirmed:{l:"אושר",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"}, deferred_monthly:{l:"נדחה לחודש",i:"📅",c:"#6D28D9"}, deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2"} };
-
+// ═══════════════════════════════════════════════════════════════
+// DESIGN TOKENS v2 — iOS 26 inspired, enterprise grade
+// Color palette: iOS system colors + neutral grays
+// Type scale: 11 / 13 / 15 / 17 / 22 / 34
+// Spacing: 4px base scale
+// Radii: 8 / 14 / 20
+// ═══════════════════════════════════════════════════════════════
 const C={
-bg:"#F4F6F9", white:"#FFFFFF", navy:"#0A1F44", blue:"#1B4FD8",
-border:"#E2E8F0", muted:"#8896A4", sub:"#64748B",
-green:"#0D6F4F", greenBg:"#ECFDF5", greenBdr:"#A7F3D0",
-amber:"#B45309", amberBg:"#FFFBEB", amberBdr:"#FDE68A",
-red:"#B91C1C", purple:"#6D28D9", purpleBg:"#FAF5FF", purpleBdr:"#DDD6FE",
-// Extended palette
-surface:"#F8FAFC", surfaceAlt:"#F1F5F9", disabled:"#CBD5E1", overlay:"rgba(10,31,68,0.5)",
-// Shadow system
-shSm:"0 1px 3px rgba(10,31,68,0.07)",
-shMd:"0 4px 12px rgba(10,31,68,0.10)",
-shLg:"0 12px 32px rgba(10,31,68,0.16)",
-shGreen:"0 6px 20px rgba(13,111,79,0.28)",
-shBlue:"0 4px 14px rgba(27,79,216,0.30)",
-sh:"0 1px 3px rgba(10,31,68,0.07)",
+// Base
+bg:"#F5F5F7", white:"#FFFFFF", surface:"#FFFFFF", surfaceAlt:"#FAFAFB",
+border:"#E5E5EA", borderSubtle:"#F0F0F2", divider:"#EFEFF1",
+// Ink
+ink:"#1C1C1E", inkSecondary:"#636366", inkTertiary:"#8E8E93", inkQuaternary:"#C7C7CC",
+// Accents (iOS system)
+brand:"#007AFF", brandSoft:"#E5F0FF", brandDeep:"#0051D5",
+success:"#34C759", successSoft:"#E8F8EC", successDeep:"#248A3D",
+warning:"#FF9500", warningSoft:"#FFF4E5", warningDeep:"#C76E00",
+danger:"#FF3B30", dangerSoft:"#FFE5E5", dangerDeep:"#C72820",
+special:"#AF52DE", specialSoft:"#F5E9FB", specialDeep:"#7E3DA8",
+teal:"#5AC8FA", tealSoft:"#E5F6FF",
+// Overlay
+overlay:"rgba(0,0,0,0.40)",
+// Shadows (3 levels)
+shSm:"0 1px 2px rgba(0,0,0,0.04)",
+shMd:"0 4px 12px rgba(0,0,0,0.06)",
+shLg:"0 10px 30px rgba(0,0,0,0.10)",
+// Legacy aliases for backwards compatibility (mapped to new palette)
+navy:"#1C1C1E", blue:"#007AFF", muted:"#8E8E93", sub:"#636366", disabled:"#C7C7CC",
+green:"#248A3D", greenBg:"#E8F8EC", greenBdr:"#A7E5B8",
+amber:"#C76E00", amberBg:"#FFF4E5", amberBdr:"#FFDFB0",
+red:"#FF3B30", purple:"#AF52DE", purpleBg:"#F5E9FB", purpleBdr:"#E5C8F2",
+sh:"0 1px 2px rgba(0,0,0,0.04)", shGreen:"0 4px 16px rgba(52,199,89,0.24)", shBlue:"0 4px 16px rgba(0,122,255,0.24)",
 };
 
-// Transition system
+// Status colors — modernized
+const ST_ON = {
+  pending:{l:"ממתין",i:"⏳",c:C.warning,bg:C.warningSoft},
+  done:{l:"בוצע",i:"✓",c:C.success,bg:C.successSoft},
+  paid:{l:"שולם",i:"💰",c:C.brand,bg:C.brandSoft},
+  deferred_monthly:{l:"נדחה לחודש",i:"📅",c:C.special,bg:C.specialSoft},
+  deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2",bg:C.tealSoft}
+};
+const ST_REF = {
+  pending:{l:"למנהל טלפון",i:"📞",c:C.warning,bg:C.warningSoft},
+  confirmed:{l:"אושר",i:"✓",c:C.success,bg:C.successSoft},
+  paid:{l:"שולם",i:"💰",c:C.brand,bg:C.brandSoft},
+  deferred_monthly:{l:"נדחה לחודש",i:"📅",c:C.special,bg:C.specialSoft},
+  deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2",bg:C.tealSoft}
+};
+
+// Spacing scale (4px base)
+const SP={xs:4, s:8, m:12, base:16, l:20, xl:24, xxl:32, xxxl:48};
+// Radii
+const R={s:8, m:14, l:20, full:9999};
+
+// Typography scale
+const T={
+  display:{fontSize:34, fontWeight:700, letterSpacing:"-0.02em", lineHeight:1.1},
+  titleL:{fontSize:22, fontWeight:700, letterSpacing:"-0.01em", lineHeight:1.2},
+  titleM:{fontSize:17, fontWeight:600, lineHeight:1.3},
+  bodyL:{fontSize:15, fontWeight:500, lineHeight:1.4},
+  bodyM:{fontSize:13, fontWeight:500, lineHeight:1.4},
+  caption:{fontSize:11, fontWeight:600, color:C.inkTertiary, letterSpacing:"0.04em"},
+  captionUC:{fontSize:11, fontWeight:600, color:C.inkTertiary, letterSpacing:"0.08em", textTransform:"uppercase"},
+};
+
+// Transitions
 const TRANS={
-btn:"transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease",
-spring:"all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+  btn:"transform 0.12s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s ease, background 0.18s ease, opacity 0.18s ease",
+  spring:"all 0.32s cubic-bezier(0.34,1.56,0.64,1)",
 };
 
-const card=(ex={})=>({background:C.white,border:`1px solid ${C.border}`,borderRadius:16,padding:16,marginBottom:12,boxShadow:C.shSm,...ex});
-const INP={background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,color:C.navy,fontSize:16,padding:"12px 14px",width:"100%",boxSizing:"border-box",fontFamily:"inherit",outline:"none",transition:"border-color 0.15s ease"};
-const LBL={fontSize:12,color:C.muted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8,display:"block"};
+// Component builders
+const card=(ex={})=>({background:C.white,border:`1px solid ${C.borderSubtle}`,borderRadius:R.m,padding:SP.base,marginBottom:SP.m,boxShadow:C.shSm,...ex});
+const INP={background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:R.s+4,color:C.ink,fontSize:16,padding:"14px 16px",width:"100%",boxSizing:"border-box",fontFamily:"inherit",outline:"none",transition:"border-color 0.15s ease, background 0.15s ease",fontWeight:500};
+const LBL={...T.captionUC,marginBottom:SP.s,display:"block"};
 // Button system: primary / secondary / ghost / icon
-const BTNP={background:C.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
-const BTNS={background:C.white,color:C.navy,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:600,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
-const BTNG={background:"none",color:C.muted,border:`1.5px solid ${C.border}`,borderRadius:8,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
-const BTNI=(sz=44)=>({...BTNG,width:sz,height:sz,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sz>36?18:15,lineHeight:1,padding:0});
+const BTNP={background:C.brand,color:"#fff",border:"none",borderRadius:R.s+4,padding:"15px 20px",fontSize:16,fontWeight:600,cursor:"pointer",width:"100%",transition:TRANS.btn,WebkitTapHighlightColor:"transparent",letterSpacing:"-0.01em"};
+const BTNS={background:C.surfaceAlt,color:C.ink,border:`1px solid ${C.border}`,borderRadius:R.s+4,padding:"15px 20px",fontSize:16,fontWeight:600,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
+const BTNG={background:"transparent",color:C.inkSecondary,border:`1px solid ${C.border}`,borderRadius:R.s,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"};
+const BTNI=(sz=44)=>({...BTNG,width:sz,height:sz,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sz>36?18:14,lineHeight:1,padding:0});
+
+// SVG Icon component — replaces emoji-based icons
+const Icon=({name,size=20,color="currentColor",strokeWidth=2})=>{
+  const paths={
+    bolt:<><path d="M13 2 L4.5 13.5 H11 L10 22 L18.5 10.5 H12 L13 2Z"/></>,
+    chart:<><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></>,
+    calendar:<><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>,
+    settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+    logout:<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+    chevronRight:<><polyline points="9 18 15 12 9 6"/></>,
+    chevronLeft:<><polyline points="15 18 9 12 15 6"/></>,
+    chevronDown:<><polyline points="6 9 12 15 18 9"/></>,
+    plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    minus:<><line x1="5" y1="12" x2="19" y2="12"/></>,
+    check:<><polyline points="20 6 9 17 4 12"/></>,
+    x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+    trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+    edit:<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+    download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+    gift:<><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></>,
+    clock:<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    phone:<><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></>,
+    play:<><polygon points="5 3 19 12 5 21 5 3"/></>,
+    play2:<><polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/></>,
+    bell:<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
+    dollar:<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>,
+    alert:<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+    info:<><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
+    pinpoint:<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
+    sparkle:<><path d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z"/></>,
+    sparkle2:<><path d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z" fill="currentColor" stroke="none"/></>,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{display:"block",flexShrink:0}}>{paths[name]||null}</svg>;
+};
 
 function PrivacyModal({onClose}){
 return(
@@ -149,7 +230,7 @@ return(
 <div onClick={e=>e.stopPropagation()} style={{background:C.white,width:"100%",maxHeight:"85dvh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column"}}>
 <div style={{padding:"16px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
 <div style={{fontSize:16,fontWeight:800,color:C.navy}}>מדיניות פרטיות</div>
-<button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.muted,lineHeight:1,padding:0,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+<button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",color:C.inkSecondary,padding:0,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}><Icon name="x" size={20} strokeWidth={2}/></button>
 </div>
 <div style={{padding:"20px",overflowY:"auto",flex:1,fontSize:14,lineHeight:1.8,color:C.navy,direction:"rtl"}}>
 <p style={{margin:"0 0 16px",color:C.muted,fontSize:12}}>עדכון אחרון: אפריל 2026</p>
@@ -246,7 +327,7 @@ return (
 );
 }
 
-function HR({label,val,hi}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}><span style={{fontSize:13,color:hi?C.purple:C.muted}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:hi?C.purple:C.navy}}>{val}</span></div>;}
+function HR({label,val,hi}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0"}}><span style={{fontSize:13,color:hi?"#E5C8F2":"rgba(255,255,255,0.7)",fontWeight:500}}>{label}</span><span style={{fontSize:14,fontWeight:600,color:hi?"#E5C8F2":"#fff"}}>{val}</span></div>;}
 function TRow({label,val,color,note}){return <div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:2}}>{label}{note&&<span style={{marginRight:6,color:C.muted,fontWeight:400}}>{note}</span>}</div><div style={{fontSize:22,fontWeight:800,color:color||C.navy}}>{val}</div></div>;}
 function DRow({label,val,color}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{fontSize:13,color:C.muted}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:color||C.navy}}>{val}</span></div>;}
 function MStat({label,val,color}){return <div style={{textAlign:"center"}}><div style={{fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontSize:13,fontWeight:700,color:color||C.navy}}>{val}</div></div>;}
@@ -308,7 +389,7 @@ style={{background:`${st.c}15`,border:`1.5px solid ${st.c}44`,color:st.c,borderR
 <button onClick={onCancelDelete} style={{background:C.surfaceAlt,border:"none",color:C.muted,borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",minHeight:28}}>ביטול</button>
 </div>
 ):(
-<button onClick={()=>onDelete(u.id)} style={{background:"none",border:"none",color:C.disabled,fontSize:18,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
+<button onClick={()=>onDelete(u.id)} style={{background:"transparent",border:"none",color:C.inkQuaternary,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}><Icon name="trash" size={18} strokeWidth={1.8}/></button>
 )}
 </div>
 </div>
@@ -375,8 +456,8 @@ return(
 </div>
 ):(
 <div style={{display:"flex",gap:8}}>
-<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="הכנס סכום" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1}}/>
-<button onClick={onAdd} style={{background:bgColor||"#F8FAFC",color:color||C.sub,border:`1.5px solid ${borderColor||C.border}`,borderRadius:10,padding:"0 16px",fontWeight:700,cursor:"pointer",fontSize:20,minHeight:44}}>+</button>
+<input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" value={addVal} onChange={e=>setAdd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onAdd()} style={{...INP,flex:1}}/>
+<button onClick={onAdd} style={{background:color||C.brand,color:"#fff",border:"none",borderRadius:R.s+4,padding:"0 16px",fontWeight:600,cursor:"pointer",minHeight:48,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",minWidth:48}}><Icon name="plus" size={20} strokeWidth={2.5} color="#fff"/></button>
 </div>
 )}
 </div>
@@ -388,30 +469,34 @@ const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkLabel=selWk.includes(TODAY)?"השבוע הנוכחי":`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 const canFwd=selWk[6]<TODAY;
 return(
-<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"8px 16px"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-<button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
-<span style={{fontSize:13,color:C.sub,fontWeight:600}}>{wkLabel}</span>
-<button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{...BTNI(32),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.sub:C.disabled,cursor:canFwd?"pointer":"default"}}>‹</button>
+<div style={{background:C.surface,borderBottom:`0.5px solid ${C.border}`,padding:"10px 16px 12px"}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+<button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
+<span style={{fontSize:14,color:C.ink,fontWeight:600,letterSpacing:"-0.01em"}}>{wkLabel}</span>
+<button onClick={()=>{if(!canFwd)return;goTo(shift(selDate,7));}} style={{...BTNI(36),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.inkSecondary:C.inkQuaternary,cursor:canFwd?"pointer":"default"}}><Icon name="chevronLeft" size={16} strokeWidth={2.2}/></button>
 </div>
-<div style={{display:"flex",gap:5}}>
+<div style={{display:"flex",gap:6}}>
 {selWk.map((d,i)=>{
 const wd=data.workDays[d],fut=d>TODAY,act=wd?.isActive,isSel=d===selDate,isTod=d===TODAY;
 return(
-<button key={d} disabled={fut} onClick={()=>goTo(d)}
-style={{flex:1,background:isSel?C.blue:C.surface,border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
-color:isSel?"#fff":act&&!isSel?C.green:fut?C.disabled:isTod?C.blue:C.sub,
-borderRadius:10,padding:"5px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
-display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-<span>{DAY_HEB[i]}</span>
-<span style={{fontSize:15,fontWeight:800}}>{Number(d.split("-")[2])}</span>
-<span style={{width:4,height:4,borderRadius:"50%",background:act&&!isSel?C.green:"transparent"}}/>
+<button key={d} disabled={fut} onClick={()=>{haptics.light();goTo(d);}}
+style={{flex:1,background:isSel?C.brand:act?C.successSoft:isTod?C.brandSoft:C.surfaceAlt,
+border:"none",
+color:isSel?"#fff":act?C.successDeep:fut?C.inkQuaternary:isTod?C.brand:C.inkSecondary,
+borderRadius:R.m,padding:"8px 0 6px",fontSize:10,fontWeight:isSel?700:600,cursor:fut?"default":"pointer",
+display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+opacity:fut?0.4:1,
+WebkitTapHighlightColor:"transparent",
+transition:"background 0.15s ease, color 0.15s ease"}}>
+<span style={{fontSize:10,fontWeight:600,opacity:isSel?0.85:0.7,letterSpacing:"0.02em"}}>{DAY_HEB[i]}</span>
+<span style={{fontSize:17,fontWeight:700,letterSpacing:"-0.01em"}}>{Number(d.split("-")[2])}</span>
+<span style={{width:4,height:4,borderRadius:"50%",background:act&&!isSel?C.success:isSel?"rgba(255,255,255,0.6)":"transparent",marginTop:1}}/>
 </button>
 );
 })}
 </div>
-<div style={{textAlign:"center",marginTop:6,fontSize:12,color:selDate===TODAY?C.blue:C.muted}}>
-{selDate===TODAY?"📍 היום":dateObj(selDate).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"})}
+<div style={{textAlign:"center",marginTop:8,fontSize:12,color:selDate===TODAY?C.brand:C.inkTertiary,fontWeight:500}}>
+{selDate===TODAY?"היום":dateObj(selDate).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"})}
 </div>
 </div>
 );
@@ -432,9 +517,9 @@ const nextMo=()=>{if(!canNext)return;if(calMonth===11){setCalYear(y=>y+1);setCal
 return(
 <div style={{...card(),padding:0,overflow:"hidden"}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`1px solid ${C.border}`}}>
-<button onClick={prevMo} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
+<button onClick={prevMo} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
 <div style={{fontSize:15,fontWeight:700,color:C.navy}}>{MONTH_HEB[calMonth]} {calYear}</div>
-<button onClick={nextMo} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub,opacity:canNext?1:0.3,cursor:canNext?"pointer":"default"}}>‹</button>
+<button onClick={nextMo} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:canNext?C.inkSecondary:C.inkQuaternary,opacity:canNext?1:0.4,cursor:canNext?"pointer":"default"}}><Icon name="chevronLeft" size={16} strokeWidth={2.2}/></button>
 </div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"8px 12px 4px"}}>
 {DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:10,color:C.muted,fontWeight:600,padding:"4px 0"}}>{n}</div>)}
@@ -818,30 +903,28 @@ onDeferMonthly:deferMonthly,onDeferTuesday:deferTuesday};
 
 const renderField=()=>(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
-<div style={{margin:"0 16px 12px"}}>
+<div style={{margin:"0 16px 16px"}}>
 {selDay.isActive?(
-<div onClick={toggleActive} style={{background:`linear-gradient(135deg,${C.green},#0A5C3A)`,borderRadius:20,padding:"16px 20px",boxShadow:"0 8px 32px rgba(13,111,79,0.35)",cursor:"pointer",userSelect:"none"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-<div>
-<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-<div style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff"}}>✓</div>
-<div style={{fontSize:22,fontWeight:900,color:"#fff",letterSpacing:"-0.02em"}}>עבדתי היום</div>
+<div onClick={toggleActive} style={{background:C.success,borderRadius:R.l,padding:"20px 22px",boxShadow:"0 8px 24px rgba(52,199,89,0.32)",cursor:"pointer",userSelect:"none",position:"relative",overflow:"hidden"}}>
+<div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16}}>
+<div style={{flex:1,minWidth:0}}>
+<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+<div style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,0.22)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Icon name="check" size={16} strokeWidth={3}/></div>
+<div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,0.95)",letterSpacing:"0.02em"}}>עבדתי היום</div>
 </div>
-<div style={{fontSize:32,fontWeight:900,color:"#fff",letterSpacing:"-0.03em",lineHeight:1}}>{fmt(BASE)}</div>
-<div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginTop:4,fontWeight:600}}>שכר בסיס · לחץ לביטול</div>
+<div style={{fontSize:38,fontWeight:700,color:"#fff",letterSpacing:"-0.03em",lineHeight:1}}>{fmt(BASE)}</div>
+<div style={{fontSize:12,color:"rgba(255,255,255,0.78)",marginTop:6,fontWeight:500}}>שכר בסיס · הקש לביטול</div>
 </div>
-<div style={{fontSize:48,opacity:0.25}}>✓</div>
 </div>
 </div>
 ):(
-<button onClick={toggleActive} style={{width:"100%",background:C.white,border:`2px dashed ${C.border}`,borderRadius:20,padding:"20px 20px",boxShadow:"0 2px 12px rgba(10,31,68,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
-<div style={{width:48,height:48,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(27,79,216,0.35)",flexShrink:0}}>
-<span style={{fontSize:20,color:"#fff",marginInlineEnd:2}}>▶</span>
+<button onClick={toggleActive} style={{width:"100%",background:C.brand,border:"none",borderRadius:R.l,padding:"22px 24px",boxShadow:"0 8px 24px rgba(0,122,255,0.32)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,WebkitTapHighlightColor:"transparent",color:"#fff"}}>
+<div style={{textAlign:"right",flex:1,minWidth:0}}>
+<div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,0.85)",letterSpacing:"0.02em",marginBottom:6}}>שכר בסיס</div>
+<div style={{fontSize:22,fontWeight:700,color:"#fff",letterSpacing:"-0.01em",lineHeight:1.1}}>התחל יום עבודה</div>
+<div style={{fontSize:13,color:"rgba(255,255,255,0.78)",marginTop:6,fontWeight:500}}>{fmt(BASE)} כשמסמנים</div>
 </div>
-<div style={{textAlign:"right"}}>
-<div style={{fontSize:20,fontWeight:900,color:C.navy}}>התחל יום עבודה</div>
-<div style={{fontSize:13,color:C.muted,marginTop:2,fontWeight:500}}>{fmt(BASE)} שכר בסיס</div>
-</div>
+<div style={{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,0.22)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff"}}><Icon name="play2" size={18}/></div>
 </button>
 )}
 </div>
@@ -852,8 +935,9 @@ const renderField=()=>(
 </div>
 <div style={{margin:"0 16px 12px"}}>
 {!showForm?(
-<button onClick={()=>setShowForm(true)} style={{...BTNP,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-<span style={{fontSize:20}}>+</span> הוסף הגדלה
+<button onClick={()=>{haptics.light();setShowForm(true);}} style={{...BTNP,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+<Icon name="plus" size={20} strokeWidth={2.5} color="#fff"/>
+<span>הוסף הגדלה</span>
 </button>
 ):(
 <div style={{background:C.white,border:`1.5px solid ${C.blue}`,borderRadius:16,padding:16}}>
@@ -901,13 +985,13 @@ const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>!["paid","deferred_monthly","deferred_tuesday"].includes(u.status));
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
-<div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
-<div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
-סה"כ הכנסות — {MONTH_HEB[_selM-1]} {_selY}
+<div style={{background:C.ink,borderRadius:R.l,padding:"22px 24px",margin:"0 16px 16px",boxShadow:"0 8px 24px rgba(0,0,0,0.16)"}}>
+<div style={{fontSize:12,color:"rgba(255,255,255,0.65)",fontWeight:500,letterSpacing:"0.04em",marginBottom:8}}>
+סך הכל בחודש · {MONTH_HEB[_selM-1]} {_selY}
 </div>
-<div style={{fontSize:44,fontWeight:900,color:"#fff",lineHeight:1,letterSpacing:"-0.02em"}}>{fmt(moTotal)}</div>
-<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:4,borderTop:"1px solid rgba(255,255,255,0.15)",paddingTop:16}}>
-<HR label={`שכר בסיס — ${moActive} ימים`} val={fmt(moActive*BASE)}/>
+<div style={{fontSize:42,fontWeight:700,color:"#fff",lineHeight:1,letterSpacing:"-0.03em"}}>{fmt(moTotal)}</div>
+<div style={{marginTop:20,display:"flex",flexDirection:"column",gap:2,borderTop:"0.5px solid rgba(255,255,255,0.12)",paddingTop:16}}>
+<HR label={`שכר בסיס · ${moActive} ימים`} val={fmt(moActive*BASE)}/>
 <HR label="טיפים" val={fmt(moTips)}/>
 <HR label="עמלות ששולמו" val={fmt(moComm)}/>
 {moBonus>0&&<HR label="בונוסים" val={fmt(moBonus)} hi/>}
@@ -938,12 +1022,12 @@ const cycleCommUpsells=data.upsells.filter(u=>
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
-<button onClick={()=>goTo(shift(deliveryTuesday,-7))} style={{...BTNI(32),background:C.surfaceAlt,border:"none",color:C.sub}}>›</button>
+<button onClick={()=>goTo(shift(deliveryTuesday,-7))} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
 <div style={{textAlign:"center"}}>
 <div style={{fontSize:11,color:deliveryTuesday===TODAY?C.green:C.muted,fontWeight:700}}>{deliveryLbl}</div>
 <div style={{fontSize:14,fontWeight:700,color:C.navy}}>{cycleLabel}</div>
 </div>
-<button onClick={()=>{if(canFwd)goTo(shift(deliveryTuesday,7));}} style={{...BTNI(32),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.sub:C.disabled,cursor:canFwd?"pointer":"default"}}>‹</button>
+<button onClick={()=>{if(canFwd)goTo(shift(deliveryTuesday,7));}} style={{...BTNI(36),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.inkSecondary:C.inkQuaternary,cursor:canFwd?"pointer":"default"}}><Icon name="chevronLeft" size={16} strokeWidth={2.2}/></button>
 </div>
 {pendingRefs.length>0&&(
 <div style={{...card(),background:C.amberBg,border:`1px solid ${C.amberBdr}`,margin:"0 16px 12px"}}>
@@ -1062,40 +1146,43 @@ if(authLoading)return<div style={{background:C.white,minHeight:"100dvh",display:
 if(!session)return<>{<AuthScreen onPrivacy={()=>setShowPrivacy(true)}/>}{overlays}</>;
 if(loading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
 
-const TABS=[{id:"field",icon:"⚡",label:"שטח"},{id:"summary",icon:"📊",label:"סיכום"},{id:"tuesday",icon:"📋",label:"שלישי"}];
+const TABS=[
+  {id:"field",icon:"bolt",label:"שטח"},
+  {id:"summary",icon:"chart",label:"סיכום"},
+  {id:"tuesday",icon:"calendar",label:"שלישי"}
+];
 
 return(
 <div className="app-shell" style={{background:C.bg,minHeight:"100dvh",color:C.navy,fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",overscrollBehavior:"none",WebkitTextSizeAdjust:"100%"}}>
-<div style={{background:C.white,borderBottom:`1px solid ${C.border}`,paddingTop:"calc(14px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
+<div style={{background:`rgba(255,255,255,0.92)`,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`0.5px solid ${C.border}`,paddingTop:"calc(12px + env(safe-area-inset-top))",paddingBottom:"12px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",position:"sticky",top:0,zIndex:100}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{display:"flex",alignItems:"center",gap:10}}>
-<img src="/apple-touch-icon.png" style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
+<img src="/apple-touch-icon.png" style={{width:36,height:36,borderRadius:10,objectFit:"cover",flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.08)"}}/>
 <div>
-<div style={{fontSize:16,fontWeight:900,color:C.navy,lineHeight:1.1}}>כרישים בניקיון</div>
-<div style={{fontSize:11,color:C.muted,fontWeight:600,marginTop:1}}>{tab==="field"?"שטח":tab==="summary"?"סיכום":"שלישי"}</div>
+<div style={{fontSize:17,fontWeight:700,color:C.ink,lineHeight:1.15,letterSpacing:"-0.01em"}}>כרישים בניקיון</div>
+<div style={{fontSize:12,color:C.inkTertiary,fontWeight:500,marginTop:2}}>{tab==="field"?"יום עבודה":tab==="summary"?"סיכום חודשי":"מחזור שלישי"}</div>
 </div>
 </div>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
-<div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"55vw"}}>{chipLabel}</div>
-<button onClick={()=>setShowSettings(true)} title="הגדרות" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:14,lineHeight:1}}>⚙</button>
-<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:16,lineHeight:1}}>←</button>
+<button onClick={()=>setShowSettings(true)} title="הגדרות" style={{background:"transparent",border:"none",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.inkSecondary,WebkitTapHighlightColor:"transparent",transition:"color 0.15s ease"}}><Icon name="settings" size={22} strokeWidth={1.8}/></button>
+<button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"transparent",border:"none",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.inkSecondary,WebkitTapHighlightColor:"transparent",transition:"color 0.15s ease"}}><Icon name="logout" size={22} strokeWidth={1.8}/></button>
 </div>
 </div>
 </div>
 {tab==="field"&&<WeekNav selWk={selWk} data={data} selDate={selDate} goTo={goTo}/>}
-{toast&&<div style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",background:C.navy,color:"#fff",borderRadius:20,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast}</div>}
+{toast&&<div style={{position:"fixed",top:"calc(16px + env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",background:"rgba(28,28,30,0.94)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#fff",borderRadius:R.full,padding:"10px 20px",fontSize:14,fontWeight:600,zIndex:300,whiteSpace:"nowrap",boxShadow:"0 8px 24px rgba(0,0,0,0.18)",animation:"slideUp 0.3s ease-out"}}>{toast}</div>}
 <div>
 {tab==="field"&&renderField()}
 {tab==="summary"&&renderSummary()}
 {tab==="tuesday"&&renderTuesday()}
 </div>
-<div style={{position:"fixed",bottom:0,left:0,right:0,height:"calc(49px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)",background:C.white,boxShadow:"0 -1px 0 rgba(0,0,0,0.08)",display:"flex",alignItems:"stretch",zIndex:100,boxSizing:"border-box"}}>
+<div style={{position:"fixed",bottom:0,left:0,right:0,paddingBottom:"env(safe-area-inset-bottom)",background:`rgba(255,255,255,0.92)`,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`0.5px solid ${C.border}`,display:"flex",alignItems:"stretch",zIndex:100,boxSizing:"border-box"}}>
 {TABS.map(t=>{
 const act=tab===t.id;
 return(
-<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,WebkitTapHighlightColor:"transparent",color:act?C.blue:C.muted}}>
-<span style={{fontSize:22,lineHeight:1}}>{t.icon}</span>
-{act&&<span style={{fontSize:9,fontWeight:700,lineHeight:1}}>{t.label}</span>}
+<button key={t.id} onClick={()=>{haptics.light();setTab(t.id);}} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 0 8px",WebkitTapHighlightColor:"transparent",color:act?C.brand:C.inkTertiary,transition:"color 0.2s ease"}}>
+<Icon name={t.icon} size={26} strokeWidth={act?2.2:1.8}/>
+<span style={{fontSize:10,fontWeight:act?600:500,lineHeight:1,letterSpacing:"-0.01em"}}>{t.label}</span>
 </button>
 );
 })}

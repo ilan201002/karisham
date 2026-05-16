@@ -6,7 +6,8 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0A1F44" />
+    <meta name="theme-color" content="#F5F5F7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)" />
 
     <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -84,6 +85,28 @@
         animation: slideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1);
         will-change: transform;
       }
+
+      /* Toast slide-down */
+      @keyframes toastIn {
+        0% { opacity: 0; transform: translate(-50%, -8px) scale(0.96); }
+        100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      }
+
+      /* Button press effect — native iOS feel */
+      button:active {
+        transform: scale(0.97);
+        opacity: 0.85;
+        transition: transform 0.08s ease, opacity 0.08s ease;
+      }
+      button {
+        transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s ease;
+      }
+      /* Smooth scrolling for iOS-like inertia */
+      #root {
+        scroll-behavior: smooth;
+      }
+      /* Disable button press effect on tab bar — handled separately */
+      .app-shell > div:last-of-type button:active { transform: none; opacity: 1; }
 
       /* Desktop: centered card with gutter */
       @media (min-width: 600px) {
