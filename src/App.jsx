@@ -47,6 +47,13 @@ async function scheduleTuesdayReminder(){
   }catch(e){console.warn("[notif] failed:",e);}
 }
 
+// P1-7: localStorage לא תמיד זמין (iOS Safari Private, Mobile Safari quotaExceeded וכו')
+// הוגדר ב-module scope כדי שיהיה זמין לכל useState callback
+const safeLS={
+  get:(k)=>{try{return localStorage.getItem(k);}catch{return null;}},
+  set:(k,v)=>{try{localStorage.setItem(k,v);return true;}catch{return false;}}
+};
+
 // iOS-3: רטט קצר/בינוני/חזק בפעולות חשובות — שקט לחלוטין ב-web
 const haptics = {
   light: async () => { if (!Capacitor.isNativePlatform()) return; try { const { Haptics, ImpactStyle } = await import("@capacitor/haptics"); await Haptics.impact({ style: ImpactStyle.Light }); } catch {} },
@@ -750,11 +757,7 @@ const setMonthlyGoalPersist=(v)=>{setMonthlyGoal(v);safeLS.set("monthlyGoal",Str
 // Wave2-3: Biometric availability + enabled
 const [bioAvailable,setBioAvailable]=useState(false);
 const [bioEnabled,setBioEnabled]=useState(()=>safeLS.get("bioEnabled")==="1");
-// P1-7: localStorage לא תמיד זמין (iOS Safari Private, Mobile Safari quotaExceeded וכו')
-const safeLS={
-  get:(k)=>{try{return localStorage.getItem(k);}catch{return null;}},
-  set:(k,v)=>{try{localStorage.setItem(k,v);return true;}catch{return false;}}
-};
+// P1-7: safeLS מוגדר ב-module scope (למעלה בקובץ) כדי לפתור TDZ
 const [cookieConsent,setCookieConsent]=useState(()=>!!safeLS.get("cookieConsent"));
 const acceptCookies=()=>{safeLS.set("cookieConsent","1");setCookieConsent(true);};
 
