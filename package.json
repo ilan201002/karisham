@@ -19,7 +19,9 @@
     "@capacitor/splash-screen": "^6.0.3",
     "@capacitor/haptics": "^6.0.2",
     "@capacitor/keyboard": "^6.0.3",
-    "@capacitor/preferences": "^6.0.3"
+    "@capacitor/preferences": "^6.0.3",
+    "@capacitor/local-notifications": "^6.1.1",
+    "@aparajita/capacitor-biometric-auth": "^9.0.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.0",

@@ -109,6 +109,29 @@
       /* Disable button press effect on tab bar — handled separately */
       .app-shell > div:last-of-type button:active { transform: none; opacity: 1; }
 
+      /* Wave3: keyboard focus accessibility */
+      button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, [role="button"]:focus-visible {
+        outline: 2px solid #007AFF;
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+      input:focus-visible { outline-offset: 0; }
+
+      /* Wave4: Dark mode preview support — full dark UI is a separate effort, but ensure media meta is correct.
+         For now: only the splash bg + safari bar adapts (via theme-color meta tags above).
+         Future: invert C tokens via JS toggle reading prefers-color-scheme. */
+
+      /* Wave3: respect prefers-reduced-motion (a11y) */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+        button:active { transform: none; }
+        .modal-sheet, .action-sheet { animation: none; }
+      }
+
       /* Sticky stack: header + week-nav stay locked at top while scrolling */
       .sticky-stack { position: sticky; top: 0; z-index: 100; }
       .sticky-week { position: sticky; z-index: 95; }

@@ -3,6 +3,50 @@ import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/react";
 import { Capacitor } from "@capacitor/core";
 
+// Wave2-2 + Wave2-3: lazy-load native plugins for biometric + local notifications
+async function checkBioAvailability(){
+  if(!Capacitor.isNativePlatform())return false;
+  try{
+    const{BiometricAuth}=await import("@aparajita/capacitor-biometric-auth");
+    const info=await BiometricAuth.checkBiometry();
+    return info.isAvailable===true;
+  }catch{return false;}
+}
+async function authenticateWithBio(reason="כניסה לכרישים"){
+  if(!Capacitor.isNativePlatform())return false;
+  try{
+    const{BiometricAuth}=await import("@aparajita/capacitor-biometric-auth");
+    await BiometricAuth.authenticate({reason,cancelTitle:"ביטול",allowDeviceCredential:true,iosFallbackTitle:"השתמש בקוד גישה"});
+    return true;
+  }catch{return false;}
+}
+
+// Wave2-2: schedules a Tuesday reminder via Capacitor LocalNotifications
+async function scheduleTuesdayReminder(){
+  if(!Capacitor.isNativePlatform())return;
+  try{
+    const{LocalNotifications}=await import("@capacitor/local-notifications");
+    const perm=await LocalNotifications.requestPermissions();
+    if(perm.display!=="granted")return;
+    await LocalNotifications.cancel({notifications:[{id:7001}]});
+    // מציאת השלישי הבא ב-19:00
+    const now=new Date();
+    const daysUntilTue=(2-now.getDay()+7)%7||7;
+    const nextTue=new Date(now);
+    nextTue.setDate(now.getDate()+daysUntilTue);
+    nextTue.setHours(19,0,0,0);
+    await LocalNotifications.schedule({
+      notifications:[{
+        id:7001,
+        title:"מסירת מזומן · שלישי",
+        body:"בדוק כמה מזומן יש להעביר למחסן.",
+        schedule:{at:nextTue,repeats:true,every:"week"},
+        sound:undefined,
+      }]
+    });
+  }catch(e){console.warn("[notif] failed:",e);}
+}
+
 // iOS-3: רטט קצר/בינוני/חזק בפעולות חשובות — שקט לחלוטין ב-web
 const haptics = {
   light: async () => { if (!Capacitor.isNativePlatform()) return; try { const { Haptics, ImpactStyle } = await import("@capacitor/haptics"); await Haptics.impact({ style: ImpactStyle.Light }); } catch {} },
@@ -220,6 +264,10 @@ const Icon=({name,size=20,color="currentColor",strokeWidth=2})=>{
     pinpoint:<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
     sparkle:<><path d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z"/></>,
     sparkle2:<><path d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z" fill="currentColor" stroke="none"/></>,
+    search:<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+    target:<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>,
+    faceid:<><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/><path d="M9 16c1 1 2 1.5 3 1.5s2-0.5 3-1.5"/><line x1="12" y1="11" x2="12" y2="13"/></>,
+    fingerprint:<><path d="M6 13a8 8 0 0 1 16 0v2"/><path d="M12 7a4 4 0 0 0-4 4v2"/><path d="M12 15v6"/><path d="M16 13v3"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{display:"block",flexShrink:0}}>{paths[name]||null}</svg>;
 };
@@ -465,7 +513,7 @@ function EmptyState({icon="info",title,description,actionLabel,onAction,subtle})
 function SkeletonCard({h=64}){return <div style={{margin:"0 16px 12px",height:h,background:"#F0F0F2",borderRadius:R.m}} className="skeleton"/>;}
 function TRow({label,val,color,note}){return <div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:2}}>{label}{note&&<span style={{marginRight:6,color:C.muted,fontWeight:400}}>{note}</span>}</div><div style={{fontSize:22,fontWeight:800,color:color||C.navy}}>{val}</div></div>;}
 function DRow({label,val,color}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{fontSize:13,color:C.muted}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:color||C.navy}}>{val}</span></div>;}
-function MStat({label,val,color}){return <div style={{textAlign:"center"}}><div style={{fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontSize:13,fontWeight:700,color:color||C.navy}}>{val}</div></div>;}
+function MStat({label,val,color}){return <div style={{textAlign:"center"}}><div style={{fontSize:11,color:C.inkTertiary,marginBottom:3,fontWeight:500,letterSpacing:"0.02em"}}>{label}</div><div style={{fontSize:14,fontWeight:700,color:color||C.ink,letterSpacing:"-0.01em"}}>{val}</div></div>;}
 
 // Status icon mapping — SVG instead of emoji
 const ST_ICON={
@@ -580,40 +628,42 @@ const _todayYM=_getYearMonth(new Date());
 const canNext=calYear<_todayYM.year||(calYear===_todayYM.year&&calMonth<_todayYM.month);
 const nextMo=()=>{if(!canNext)return;if(calMonth===11){setCalYear(y=>y+1);setCalMonth(0);}else setCalMonth(m=>m+1);};
 return(
-<div style={{...card(),padding:0,overflow:"hidden"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`1px solid ${C.border}`}}>
+<div style={{background:C.surface,border:`1px solid ${C.borderSubtle}`,borderRadius:R.m,padding:0,overflow:"hidden",boxShadow:C.shSm}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:`0.5px solid ${C.divider}`}}>
 <button onClick={prevMo} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
-<div style={{fontSize:15,fontWeight:700,color:C.navy}}>{MONTH_HEB[calMonth]} {calYear}</div>
+<div style={{fontSize:15,fontWeight:700,color:C.ink,letterSpacing:"-0.01em"}}>{MONTH_HEB[calMonth]} {calYear}</div>
 <button onClick={nextMo} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:canNext?C.inkSecondary:C.inkQuaternary,opacity:canNext?1:0.4,cursor:canNext?"pointer":"default"}}><Icon name="chevronLeft" size={16} strokeWidth={2.2}/></button>
 </div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"8px 12px 4px"}}>
-{DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:10,color:C.muted,fontWeight:600,padding:"4px 0"}}>{n}</div>)}
+{DAY_HEB.map(n=><div key={n} style={{textAlign:"center",fontSize:11,color:C.inkTertiary,fontWeight:600,padding:"4px 0",letterSpacing:"0.02em"}}>{n}</div>)}
 </div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"0 12px 12px",gap:3}}>
+<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"0 12px 12px",gap:4}}>
 {grid.map((d,i)=>{
 if(!d)return<div key={`b${i}`}/>;
 const wd=data.workDays[d],act=wd?.isActive,fut=d>TODAY,isTod=d===TODAY,isSel=d===selDate;
-const ups=data.upsells.filter(u=>u.date===d);
+const dayCommissions=data.upsells.filter(u=>u.date===d&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
+const dayTotal=(act?BASE:0)+(wd?.tips||0)+(wd?.bonus||0)+dayCommissions;
+const showAmount=dayTotal>0;
 return(
-<button key={d} onClick={()=>{if(!fut)setModalDay(d);}} disabled={fut}
-style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":C.surface,
-border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
-borderRadius:10,padding:"6px 2px",cursor:fut?"default":"pointer",
-display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52,opacity:fut?0.25:1}}>
-<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?C.disabled:isTod?C.blue:C.navy}}>{Number(d.split("-")[2])}</span>
-<div style={{display:"flex",gap:2,justifyContent:"center",flexWrap:"wrap"}}>
-{act&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.8)":C.green}}/>}
-{(wd?.tips||0)>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.amber}}/>}
-{ups.length>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.blue}}/>}
-</div>
+<button key={d} onClick={()=>{if(!fut){haptics.light();setModalDay(d);}}} disabled={fut}
+style={{background:isSel?C.brand:act?C.successSoft:isTod?C.brandSoft:C.surfaceAlt,
+border:"none",
+borderRadius:R.s+2,padding:"7px 2px 5px",cursor:fut?"default":"pointer",
+display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:54,opacity:fut?0.35:1,WebkitTapHighlightColor:"transparent",transition:"background 0.15s ease"}}>
+<span style={{fontSize:13,fontWeight:isTod||isSel?700:600,color:isSel?"#fff":act?C.successDeep:fut?C.inkQuaternary:isTod?C.brand:C.ink,letterSpacing:"-0.01em"}}>{Number(d.split("-")[2])}</span>
+{showAmount?(
+<span style={{fontSize:10,fontWeight:600,color:isSel?"rgba(255,255,255,0.92)":act?C.successDeep:C.inkTertiary,letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>{dayTotal>=1000?`${(Math.round(dayTotal/100)/10).toString().replace(/\.0$/,"")}k`:Math.round(dayTotal)}</span>
+):(
+<div style={{height:10}}/>
+)}
 </button>
 );
 })}
 </div>
-<div style={{borderTop:`1px solid ${C.border}`,padding:"12px 16px",background:C.surface,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-<MStat label="ימי עבודה" val={cmActive} color={C.green}/>
-<MStat label="טיפים" val={fmt(cmTips)} color={C.amber}/>
-<MStat label='סה"כ חודש' val={fmt(cmTotal)} color={C.navy}/>
+<div style={{borderTop:`0.5px solid ${C.divider}`,padding:"14px 16px",background:C.surfaceAlt,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+<MStat label="ימי עבודה" val={cmActive} color={C.success}/>
+<MStat label="טיפים" val={fmt(cmTips)} color={C.warning}/>
+<MStat label="סך חודשי" val={fmt(cmTotal)} color={C.ink}/>
 </div>
 </div>
 );
@@ -686,6 +736,20 @@ const [refreshing,setRefreshing]=useState(false);
 const [pullDist,setPullDist]=useState(0);
 // UX-P2: action sheet state — { type: 'upsellStatus'|'editAmount', data: ... } | null
 const [actionSheet,setActionSheet]=useState(null);
+// Wave1-1: Undo delete — keeps track of the most recently deleted upsell for 5 seconds
+const [recentlyDeleted,setRecentlyDeleted]=useState(null); // {u, timer}
+const undoTimerRef=useRef(null);
+// Wave2-1: Search query for summary tab
+const [searchQ,setSearchQ]=useState("");
+// Wave2-4: Monthly goal (persisted in localStorage)
+const [monthlyGoal,setMonthlyGoal]=useState(()=>{
+  const v=safeLS.get("monthlyGoal");
+  return v?Number(v)||0:0;
+});
+const setMonthlyGoalPersist=(v)=>{setMonthlyGoal(v);safeLS.set("monthlyGoal",String(v));};
+// Wave2-3: Biometric availability + enabled
+const [bioAvailable,setBioAvailable]=useState(false);
+const [bioEnabled,setBioEnabled]=useState(()=>safeLS.get("bioEnabled")==="1");
 // P1-7: localStorage לא תמיד זמין (iOS Safari Private, Mobile Safari quotaExceeded וכו')
 const safeLS={
   get:(k)=>{try{return localStorage.getItem(k);}catch{return null;}},
@@ -699,6 +763,27 @@ supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setAuth
 const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setSession(session));
 return()=>subscription.unsubscribe();
 },[]);
+
+// Wave2-3: check biometric availability + auto-prompt on app open if enabled
+const [bioLocked,setBioLocked]=useState(false);
+useEffect(()=>{
+  (async()=>{
+    const avail=await checkBioAvailability();
+    setBioAvailable(avail);
+    if(avail&&bioEnabled&&session){
+      setBioLocked(true);
+      const ok=await authenticateWithBio("פתח את כרישים בניקיון");
+      if(ok){setBioLocked(false);}
+      else{await supabase.auth.signOut();}
+    }
+  })();
+// eslint-disable-next-line react-hooks/exhaustive-deps
+},[session?.user?.id]);
+
+// Wave2-2: schedule Tuesday reminder once session is established (idempotent)
+useEffect(()=>{
+  if(session)scheduleTuesdayReminder();
+},[session?.user?.id]);
 
 useEffect(()=>{
 if(!session)return;
@@ -813,6 +898,12 @@ if(!root)return;
 const target=tabScrollRef.current[tab]||0;
 // micro-defer to let new content paint first
 requestAnimationFrame(()=>{ root.scrollTop=target; setScrolled(target>4); });
+// Wave1-3: כשעוברים לסיכום — סנכרון לוח השנה לתאריך הנבחר
+if(tab==="summary"){
+  const [y,m]=selDate.split("-").map(Number);
+  if(y!==calYear)setCalYear(y);
+  if(m-1!==calMonth)setCalMonth(m-1);
+}
 },[tab]);
 
 // UX-P4: Pull-to-refresh — triggers reload when user pulls down at top.
@@ -988,17 +1079,35 @@ if(!res.ok){flash("⚠️ שגיאה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.map(x=>x.id!==id?x:{...x,status:"done"})}));
 haptics.success();
 };
-// P0-3: מחיקה רכה (soft delete) — נקרא אחרי אישור ActionSheet
+// P0-3 + Wave1-1: מחיקה רכה — נשמרת ב-recentlyDeleted ל-5 שניות לאפשר Undo
 const delUp=async(id)=>{
 if(busy)return;
+const u=data.upsells.find(x=>x.id===id);
+if(!u)return;
 setBusy(id);
 const now=new Date().toISOString();
 const res=await dbOp(supabase.from("upsells").update({deleted_at:now}).eq("id",id));
 setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה במחיקה — נסה שוב");return;}
-setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));
+setData(d=>({...d,upsells:d.upsells.filter(x=>x.id!==id)}));
 haptics.success();
-flash("✅ נמחק");
+// שומר ל-undo, ומציג toast מיוחד עם כפתור
+setRecentlyDeleted({u,timestamp:Date.now()});
+if(undoTimerRef.current)clearTimeout(undoTimerRef.current);
+undoTimerRef.current=setTimeout(()=>setRecentlyDeleted(null),5000);
+};
+
+const undoDelete=async()=>{
+if(!recentlyDeleted)return;
+const u=recentlyDeleted.u;
+setRecentlyDeleted(null);
+if(undoTimerRef.current){clearTimeout(undoTimerRef.current);undoTimerRef.current=null;}
+const res=await dbOp(supabase.from("upsells").update({deleted_at:null}).eq("id",u.id));
+if(!res.ok){flash("⚠️ שגיאה בשחזור — נסה שוב");return;}
+// משחזר חזרה לרשימה
+setData(d=>({...d,upsells:[{...u,deleted_at:null},...d.upsells]}));
+haptics.light();
+flash("✅ שוחזר");
 };
 const executePaid=async(id)=>{
 if(busy)return;
@@ -1050,6 +1159,27 @@ const exportMyData=async()=>{
   a.download=`karisham-export-${TODAY}.json`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  flash("✅ הקובץ הורד");
+};
+
+// Wave4-3: CSV export — Excel-compatible
+const exportCSV=async()=>{
+  if(busy)return;
+  setBusy("exportCSV");
+  const upRes=await dbOp(supabase.from("upsells").select("*").eq("user_id",session.user.id));
+  setBusy(null);
+  if(!upRes.ok){flash("⚠️ שגיאה בייצוא");return;}
+  const headers=["date","type","name","status","address","phone","amount","commission","created_at","paid_at","deferred_until","deleted_at"];
+  const rows=upRes.data||[];
+  const escape=(v)=>{if(v==null)return"";const s=String(v).replace(/"/g,'""');return /[",\n;]/.test(s)?`"${s}"`:s;};
+  const csv="﻿"+[headers.join(","),...rows.map(r=>headers.map(h=>escape(r[h])).join(","))].join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=`karisham-upsells-${TODAY}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  haptics.success();
   flash("✅ הקובץ הורד");
 };
 
@@ -1126,6 +1256,8 @@ const renderField=()=>(
 
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>!["paid","deferred_monthly","deferred_tuesday"].includes(u.status));
+const q=searchQ.trim().toLowerCase();
+const filteredActive=q?allActive.filter(u=>(u.name||"").toLowerCase().includes(q)||(u.address||"").toLowerCase().includes(q)||(u.phone||"").includes(q)):allActive;
 return(
 <div style={{paddingTop:16,paddingBottom:"calc(120px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{background:C.ink,borderRadius:R.l,padding:"22px 24px",margin:"0 16px 16px",boxShadow:"0 8px 24px rgba(0,0,0,0.16)"}}>
@@ -1133,6 +1265,17 @@ return(
 סך הכל בחודש · {MONTH_HEB[_selM-1]} {_selY}
 </div>
 <div style={{fontSize:42,fontWeight:700,color:"#fff",lineHeight:1,letterSpacing:"-0.03em"}}>{fmt(moTotal)}</div>
+{monthlyGoal>0&&(
+<div style={{marginTop:16}}>
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+    <span style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontWeight:500,letterSpacing:"0.04em"}}>יעד · {fmt(monthlyGoal)}</span>
+    <span style={{fontSize:12,color:"#fff",fontWeight:600}}>{Math.round(Math.min(100,(moTotal/monthlyGoal)*100))}%</span>
+  </div>
+  <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,0.14)",overflow:"hidden"}}>
+    <div style={{height:"100%",width:`${Math.min(100,(moTotal/monthlyGoal)*100)}%`,background:moTotal>=monthlyGoal?C.success:"#fff",borderRadius:3,transition:"width 0.5s ease"}}/>
+  </div>
+</div>
+)}
 <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:2,borderTop:"0.5px solid rgba(255,255,255,0.12)",paddingTop:16}}>
 <HR label={`שכר בסיס · ${moActive} ימים`} val={fmt(moActive*BASE)}/>
 <HR label="טיפים" val={fmt(moTips)}/>
@@ -1140,11 +1283,18 @@ return(
 {moBonus>0&&<HR label="בונוסים" val={fmt(moBonus)} hi/>}
 </div>
 </div>
-<div style={{margin:"0 16px 12px"}}><MonthCal calYear={calYear} calMonth={calMonth} data={data} selDate={selDate} setModalDay={setModalDay} setCalYear={setCalYear} setCalMonth={setCalMonth}/></div>
+<div style={{margin:"0 16px 14px"}}><MonthCal calYear={calYear} calMonth={calMonth} data={data} selDate={selDate} setModalDay={setModalDay} setCalYear={setCalYear} setCalMonth={setCalMonth}/></div>
 {allActive.length>0&&(
-<div style={{margin:"4px 16px 0"}}>
-<label style={{...LBL,marginBottom:8,paddingRight:4}}>הגדלות פעילות · {allActive.length}</label>
-{allActive.map(u=><URow key={u.id} u={u} {...upProps} showDate/>)}
+<div style={{margin:"0 16px 12px"}}>
+  <div style={{position:"relative",marginBottom:10}}>
+    <input type="search" inputMode="search" enterKeyHint="search" placeholder="חיפוש לפי שם, כתובת, טלפון…" value={searchQ} onChange={e=>setSearchQ(e.target.value)} style={{...INP,paddingRight:38,fontSize:15}}/>
+    <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:C.inkTertiary,pointerEvents:"none"}}><Icon name="search" size={16} strokeWidth={2}/></div>
+    {searchQ&&<button onClick={()=>setSearchQ("")} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:C.inkTertiary,padding:6,display:"flex",WebkitTapHighlightColor:"transparent"}}><Icon name="x" size={14} strokeWidth={2.2}/></button>}
+  </div>
+<label style={{...LBL,marginBottom:8,paddingRight:4}}>{searchQ?`תוצאות · ${filteredActive.length}`:`הגדלות פעילות · ${allActive.length}`}</label>
+{filteredActive.length>0?filteredActive.map(u=><URow key={u.id} u={u} {...upProps} showDate/>):(
+<EmptyState icon="search" title="לא נמצאו תוצאות" description={`לא נמצא דבר התואם "${searchQ}".`} subtle/>
+)}
 </div>
 )}
 </div>
@@ -1282,6 +1432,19 @@ const renderActionSheet=()=>{
   if(actionSheet.type==="cancelDay"){
     return <ActionSheet title="לבטל את יום העבודה?" description="הסכום הבסיסי יוסר מהסיכום היומי. ניתן לסמן שוב בכל רגע." actions={[{label:"בטל את היום",icon:"x",tone:"danger",onClick:toggleActive}]} onClose={closeSheet}/>;
   }
+  if(actionSheet.type==="editGoal"){
+    return <FormSheet title="יעד הכנסות לחודש" description="קבע יעד חודשי. פס ההתקדמות יופיע בלשונית סיכום. הזן 0 או השאר ריק להסרת היעד." inputLabel="יעד (₪)" placeholder="לדוגמה 8000" initial={String(monthlyGoal||"")} submitLabel="שמור"
+      onSubmit={(val)=>{
+        const trimmed=String(val||"").trim();
+        if(trimmed===""||trimmed==="0"){setMonthlyGoalPersist(0);closeSheet();haptics.success();flash("✅ היעד הוסר");return;}
+        const v=parseAmount(trimmed,999999);
+        if(v===null){flash("⚠️ סכום לא חוקי");return;}
+        setMonthlyGoalPersist(v);closeSheet();haptics.success();flash("✅ היעד נקבע");
+      }}
+      destructiveLabel={monthlyGoal>0?"הסר יעד":undefined}
+      onDestructive={()=>{setMonthlyGoalPersist(0);closeSheet();haptics.success();flash("✅ היעד הוסר");}}
+      onClose={closeSheet}/>;
+  }
   if(actionSheet.type==="editAmount"){
     const {mode,currentVal,labelText}=actionSheet;
     const MAX=mode==="cash"?999999:99999;
@@ -1307,6 +1470,16 @@ const overlays=(<>
 {showPrivacy&&<PrivacyModal onClose={()=>setShowPrivacy(false)}/>}
 {renderActionSheet()}
 {showForm&&<AddUpsellSheet selDate={selDate} onSubmit={addUpsell} onClose={()=>{if(busy)return;setShowForm(false);}} busy={busy==="addUpsell"}/>}
+{/* Wave1-1: Undo toast — appears after delete, gives 5sec to revert */}
+{recentlyDeleted&&(
+  <div style={{position:"fixed",bottom:"calc(72px + env(safe-area-inset-bottom))",left:16,right:16,zIndex:250,background:"rgba(28,28,30,0.94)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderRadius:R.m,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,boxShadow:"0 10px 30px rgba(0,0,0,0.18)",direction:"rtl",animation:"slideUp 0.3s cubic-bezier(0.32,0.72,0,1)"}}>
+    <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0,flex:1}}>
+      <Icon name="trash" size={16} strokeWidth={2} color="#fff"/>
+      <span style={{fontSize:14,color:"#fff",fontWeight:500,letterSpacing:"-0.01em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>נמחק: {recentlyDeleted.u.name||recentlyDeleted.u.address||recentlyDeleted.u.phone||"הגדלה"}</span>
+    </div>
+    <button onClick={undoDelete} style={{background:"transparent",border:"none",color:"#9EC5FF",fontSize:15,fontWeight:600,cursor:"pointer",padding:"4px 8px",WebkitTapHighlightColor:"transparent",flexShrink:0}}>בטל</button>
+  </div>
+)}
 {/* UX-Bug1: Keyboard accessory bar — appears above keyboard so user can dismiss it */}
 {kbInputFocused&&kbHeight>0&&(
   <div style={{position:"fixed",bottom:kbHeight,left:0,right:0,zIndex:700,background:`rgba(245,245,247,0.96)`,backdropFilter:"blur(20px) saturate(180%)",WebkitBackdropFilter:"blur(20px) saturate(180%)",borderTop:`0.5px solid ${C.border}`,padding:"8px 16px",display:"flex",justifyContent:"flex-end",alignItems:"center",direction:"rtl"}}>
@@ -1324,16 +1497,48 @@ const overlays=(<>
         <div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600,letterSpacing:"0.06em"}}>חשבון</div>
         <div style={{fontSize:14,color:C.navy,marginBottom:24,fontWeight:600,direction:"ltr",textAlign:"right"}}>{session?.user?.email}</div>
 
+        {/* Wave2-4: Monthly goal */}
+        <div style={{...LBL,marginBottom:8}}>יעד חודשי</div>
+        <button onClick={()=>setActionSheet({type:"editGoal"})} style={{...BTNS,width:"100%",marginBottom:10,textAlign:"right",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{display:"flex",alignItems:"center",gap:8}}><Icon name="target" size={18} strokeWidth={2} color={C.brand}/><span>יעד הכנסות לחודש</span></span>
+          <span style={{fontSize:14,color:C.ink,fontWeight:600}}>{monthlyGoal>0?fmt(monthlyGoal):"לא הוגדר"}</span>
+        </button>
+        <div style={{fontSize:11,color:C.inkTertiary,marginBottom:20,lineHeight:1.5}}>פס התקדמות יופיע בלשונית סיכום ויעדכן בזמן אמת.</div>
+
+        {/* Wave2-3: Biometric toggle (only shown if available) */}
+        {bioAvailable&&(
+          <>
+            <div style={{...LBL,marginBottom:8}}>אבטחה</div>
+            <button onClick={async()=>{
+              if(!bioEnabled){
+                const ok=await authenticateWithBio("הפעל פתיחה ביומטרית");
+                if(ok){setBioEnabled(true);safeLS.set("bioEnabled","1");haptics.success();flash("✅ הופעל");}
+              }else{
+                setBioEnabled(false);safeLS.set("bioEnabled","");flash("✅ כובה");
+              }
+            }} style={{...BTNS,width:"100%",marginBottom:20,textAlign:"right",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{display:"flex",alignItems:"center",gap:8}}><Icon name="faceid" size={18} strokeWidth={2} color={C.brand}/><span>פתיחת אפליקציה ביומטרית</span></span>
+              <div style={{width:46,height:28,borderRadius:14,background:bioEnabled?C.success:C.surfaceAlt,position:"relative",transition:"background 0.2s ease"}}>
+                <div style={{position:"absolute",top:2,left:bioEnabled?2:22,width:24,height:24,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,0.2)",transition:"left 0.2s ease"}}/>
+              </div>
+            </button>
+          </>
+        )}
+
         <div style={{...LBL,marginBottom:8}}>פעולות פרטיות</div>
 
-        <button onClick={exportMyData} disabled={busy==="export"} style={{...BTNS,width:"100%",marginBottom:10,opacity:busy==="export"?0.6:1,textAlign:"right",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span>📥 הורד את כל הנתונים שלי</span>
-          <span style={{fontSize:12,color:C.muted,fontWeight:500}}>{busy==="export"?"מכין...":"JSON"}</span>
+        <button onClick={exportMyData} disabled={busy==="export"} style={{...BTNS,width:"100%",marginBottom:8,opacity:busy==="export"?0.6:1,textAlign:"right",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{display:"flex",alignItems:"center",gap:8}}><Icon name="download" size={18} strokeWidth={2} color={C.inkSecondary}/><span>הורד נתונים</span></span>
+          <span style={{fontSize:12,color:C.inkTertiary,fontWeight:500}}>{busy==="export"?"מכין…":"JSON"}</span>
         </button>
-        <div style={{fontSize:11,color:C.muted,marginBottom:20,lineHeight:1.5}}>קובץ עם כל ימי העבודה, אפסיילים, ופרטי חשבון. אפשר לפתוח בכל עורך טקסט.</div>
+        <button onClick={()=>exportCSV()} disabled={busy==="exportCSV"} style={{...BTNS,width:"100%",marginBottom:10,opacity:busy==="exportCSV"?0.6:1,textAlign:"right",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{display:"flex",alignItems:"center",gap:8}}><Icon name="download" size={18} strokeWidth={2} color={C.inkSecondary}/><span>הורד טבלת אפסיילים</span></span>
+          <span style={{fontSize:12,color:C.inkTertiary,fontWeight:500}}>{busy==="exportCSV"?"מכין…":"CSV/Excel"}</span>
+        </button>
+        <div style={{fontSize:11,color:C.inkTertiary,marginBottom:20,lineHeight:1.5}}>קבצי הנתונים שלך לארכיון או רואה חשבון.</div>
 
-        <button onClick={()=>setShowPrivacy(true)} style={{...BTNS,width:"100%",marginBottom:20,textAlign:"right"}}>
-          📋 מדיניות פרטיות
+        <button onClick={()=>setShowPrivacy(true)} style={{...BTNS,width:"100%",marginBottom:20,textAlign:"right",display:"flex",alignItems:"center",gap:8}}>
+          <Icon name="info" size={18} strokeWidth={2} color={C.inkSecondary}/><span>מדיניות פרטיות</span>
         </button>
 
         <div style={{height:1,background:C.border,margin:"20px 0"}}/>
@@ -1373,6 +1578,18 @@ const overlays=(<>
 
 if(authLoading)return<div style={{background:C.bg,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:32,height:32,borderRadius:"50%",border:`3px solid ${C.border}`,borderTopColor:C.brand,animation:"spin 0.8s linear infinite"}}/></div>;
 if(!session)return<>{<AuthScreen onPrivacy={()=>setShowPrivacy(true)}/>}{overlays}</>;
+// Wave2-3: Bio lock screen
+if(bioLocked)return(
+<div style={{background:C.bg,minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"calc(48px + env(safe-area-inset-top))",paddingBottom:48,direction:"rtl",fontFamily:"-apple-system,'Heebo',sans-serif"}}>
+  <img src="/apple-touch-icon.png" style={{width:88,height:88,borderRadius:22,marginBottom:20,boxShadow:"0 12px 28px rgba(0,0,0,0.16)"}}/>
+  <div style={{fontSize:24,fontWeight:700,color:C.ink,letterSpacing:"-0.02em",marginBottom:8}}>נעול</div>
+  <div style={{fontSize:14,color:C.inkTertiary,marginBottom:32}}>אמת זהות כדי להמשיך</div>
+  <button onClick={async()=>{const ok=await authenticateWithBio("פתח את כרישים");if(ok)setBioLocked(false);}} style={{background:C.brand,border:"none",borderRadius:R.full,padding:"14px 28px",color:"#fff",fontSize:16,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:8,WebkitTapHighlightColor:"transparent",boxShadow:"0 4px 14px rgba(0,122,255,0.3)"}}>
+    <Icon name="fingerprint" size={20} strokeWidth={2} color="#fff"/>
+    <span>אמת זהות</span>
+  </button>
+</div>
+);
 // UX-P6: Skeleton loading instead of full-screen spinner
 if(loading)return(
 <div style={{background:C.bg,minHeight:"100dvh",fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl",paddingTop:"calc(20px + env(safe-area-inset-top))"}}>
