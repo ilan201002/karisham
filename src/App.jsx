@@ -319,7 +319,7 @@ function AddUpsellSheet({selDate,onSubmit,onClose,busy}){
 }
 
 // UX-P2: Form Sheet — bottom sheet with an input + primary action (for amount entries, etc)
-function FormSheet({title,description,inputLabel,inputType="text",inputMode,placeholder="0",initial="",submitLabel="שמור",onSubmit,onClose,helperText,extraHelper,helperColor,busy}){
+function FormSheet({title,description,inputLabel,inputType="text",inputMode,placeholder="0",initial="",submitLabel="שמור",onSubmit,onClose,helperText,extraHelper,helperColor,busy,destructiveLabel,onDestructive}){
   const [val,setVal]=useState(initial);
   const inputRef=useRef(null);
   useEffect(()=>{ const t=setTimeout(()=>inputRef.current?.focus(),250); return ()=>clearTimeout(t); },[]);
@@ -338,6 +338,7 @@ function FormSheet({title,description,inputLabel,inputType="text",inputMode,plac
             <button onClick={()=>onSubmit(val)} disabled={busy} style={{...BTNP,flex:2,opacity:busy?0.6:1}}>{busy?"שומר…":submitLabel}</button>
             <button onClick={onClose} disabled={busy} style={{...BTNS,flex:1}}>ביטול</button>
           </div>
+          {destructiveLabel&&<button onClick={onDestructive} disabled={busy} style={{width:"100%",marginTop:10,background:"transparent",border:"none",color:C.danger,fontSize:15,fontWeight:600,cursor:"pointer",padding:"12px 0",WebkitTapHighlightColor:"transparent"}}>{destructiveLabel}</button>}
         </div>
       </div>
     </div>
@@ -743,6 +744,54 @@ if(root)root.scrollTop=Math.max(0,root.scrollTop);
 window.visualViewport.addEventListener("resize",onViewportResize);
 return()=>window.visualViewport.removeEventListener("resize",onViewportResize);
 },[]);
+
+// UX-Bug1: Keyboard accessory bar — listen for keyboard show/hide via Capacitor (native) or visualViewport (web)
+const [kbHeight,setKbHeight]=useState(0);
+const [kbInputFocused,setKbInputFocused]=useState(false);
+useEffect(()=>{
+let nativeShowUnsub,nativeHideUnsub;
+if(Capacitor.isNativePlatform()){
+  (async()=>{
+    try{
+      const{Keyboard}=await import("@capacitor/keyboard");
+      nativeShowUnsub=await Keyboard.addListener("keyboardWillShow",info=>setKbHeight(info.keyboardHeight||300));
+      nativeHideUnsub=await Keyboard.addListener("keyboardWillHide",()=>setKbHeight(0));
+    }catch{/* ignore */}
+  })();
+}else if(window.visualViewport){
+  const vv=window.visualViewport;
+  const onResize=()=>{
+    const diff=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+    setKbHeight(diff>100?diff:0);
+  };
+  vv.addEventListener("resize",onResize);
+  vv.addEventListener("scroll",onResize);
+  onResize();
+  return()=>{
+    vv.removeEventListener("resize",onResize);
+    vv.removeEventListener("scroll",onResize);
+  };
+}
+// focus tracking — knows if any input is currently active
+const onFocusIn=(e)=>{ const t=e.target; if(t.tagName==="INPUT"||t.tagName==="TEXTAREA")setKbInputFocused(true); };
+const onFocusOut=(e)=>{ const t=e.target; if(t.tagName==="INPUT"||t.tagName==="TEXTAREA")setKbInputFocused(false); };
+document.addEventListener("focusin",onFocusIn);
+document.addEventListener("focusout",onFocusOut);
+return()=>{
+  document.removeEventListener("focusin",onFocusIn);
+  document.removeEventListener("focusout",onFocusOut);
+  if(nativeShowUnsub)nativeShowUnsub.remove?.();
+  if(nativeHideUnsub)nativeHideUnsub.remove?.();
+};
+},[]);
+
+const dismissKeyboard=async()=>{
+if(Capacitor.isNativePlatform()){
+  try{const{Keyboard}=await import("@capacitor/keyboard");await Keyboard.hide();}catch{}
+}
+// Force blur active element (works in both web + native)
+if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+};
 
 // UX-P1: scroll shadow + persistent scroll position per tab
 useEffect(()=>{
@@ -1236,7 +1285,19 @@ const renderActionSheet=()=>{
   if(actionSheet.type==="editAmount"){
     const {mode,currentVal,labelText}=actionSheet;
     const MAX=mode==="cash"?999999:99999;
-    return <FormSheet title={`עריכת ${labelText}`} description="הזן את הסכום הכולל החדש." inputLabel="סכום כולל" placeholder="0" initial={String(currentVal||"")} submitLabel="שמור" onSubmit={(val)=>{const v=parseAmount(val,MAX);if(v===null){flash("⚠️ סכום לא חוקי");return;}const field=mode==="tip"?"tips":mode==="cash"?"cashFromClients":"bonus";upsWD(selDate,{...selDay,[field]:v});closeSheet();flash("✅ עודכן");}} onClose={closeSheet}/>;
+    const field=mode==="tip"?"tips":mode==="cash"?"cashFromClients":"bonus";
+    return <FormSheet title={`עריכת ${labelText}`} description="הזן את הסכום הכולל החדש, או מחק לאיפוס." inputLabel="סכום כולל" placeholder="0" initial={String(currentVal||"")} submitLabel="שמור"
+      onSubmit={(val)=>{
+        // אפס מותר — בעריכה ניתן לאפס לחלוטין
+        const trimmed=String(val||"").trim();
+        if(trimmed===""||trimmed==="0"){upsWD(selDate,{...selDay,[field]:0});closeSheet();haptics.success();flash("✅ אופס");return;}
+        const v=parseAmount(trimmed,MAX);
+        if(v===null){flash("⚠️ סכום לא חוקי");return;}
+        upsWD(selDate,{...selDay,[field]:v});closeSheet();haptics.success();flash("✅ עודכן");
+      }}
+      destructiveLabel={currentVal>0?`מחק ${labelText} ליום זה`:undefined}
+      onDestructive={()=>{upsWD(selDate,{...selDay,[field]:0});closeSheet();haptics.success();flash("🗑 נמחק");}}
+      onClose={closeSheet}/>;
   }
   return null;
 };
@@ -1246,6 +1307,12 @@ const overlays=(<>
 {showPrivacy&&<PrivacyModal onClose={()=>setShowPrivacy(false)}/>}
 {renderActionSheet()}
 {showForm&&<AddUpsellSheet selDate={selDate} onSubmit={addUpsell} onClose={()=>{if(busy)return;setShowForm(false);}} busy={busy==="addUpsell"}/>}
+{/* UX-Bug1: Keyboard accessory bar — appears above keyboard so user can dismiss it */}
+{kbInputFocused&&kbHeight>0&&(
+  <div style={{position:"fixed",bottom:kbHeight,left:0,right:0,zIndex:700,background:`rgba(245,245,247,0.96)`,backdropFilter:"blur(20px) saturate(180%)",WebkitBackdropFilter:"blur(20px) saturate(180%)",borderTop:`0.5px solid ${C.border}`,padding:"8px 16px",display:"flex",justifyContent:"flex-end",alignItems:"center",direction:"rtl"}}>
+    <button onMouseDown={(e)=>e.preventDefault()} onClick={dismissKeyboard} style={{background:"transparent",border:"none",color:C.brand,fontSize:16,fontWeight:600,cursor:"pointer",padding:"8px 12px",WebkitTapHighlightColor:"transparent",letterSpacing:"-0.01em"}}>סיים</button>
+  </div>
+)}
 {showSettings&&(
   <div style={{position:"fixed",inset:0,background:C.overlay,zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={()=>{setShowSettings(false);setDeleteAccountStep(0);}}>
     <div onClick={e=>e.stopPropagation()} style={{background:C.white,width:"100%",maxHeight:"85dvh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column"}}>
