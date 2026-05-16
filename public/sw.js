@@ -1,10 +1,19 @@
-const CACHE = "karisham-v2";
+// P1-6: גרסה מוזרקת אוטומטית ע"י vite.config.js בכל build
+const CACHE = "karisham-__SW_VERSION__";
 const STATIC = ["/", "/index.html"];
 
 self.addEventListener("install", e => {
+  // לא קוראים אוטומטית ל-skipWaiting — נחכה שהמשתמש יאשר רענון ב-UI
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(STATIC))
   );
+});
+
+// P1-6: SW מאזין להודעה מה-UI כדי לאמץ את הגרסה החדשה
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", e => {

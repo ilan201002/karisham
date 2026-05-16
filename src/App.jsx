@@ -6,6 +6,17 @@ const SUPABASE_URL = "https://xhouuigwhjwsmttdpudl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jYGyXWsmisYcPjjVdWrOZw_ik7c3bRr";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// P1-4: ולידציה של מספרים — מסכומים שליליים, NaN, Infinity, או מספרים גבוהים בצורה לא הגיונית.
+// מחזיר number חוקי או null. הקורא צריך לבדוק null ולא להמשיך.
+// MAX מגדיר תקרה לפי הקשר (טיפים=99999, אפסיילים=999999) בהתאם ל-CHECK constraints ב-DB.
+function parseAmount(raw, MAX = 99999) {
+  const n = parseFloat(String(raw).trim());
+  if (!Number.isFinite(n)) return null;     // NaN, Infinity, -Infinity
+  if (n <= 0) return null;                   // 0 ולמטה
+  if (n >= MAX) return null;                 // מעבר לתקרה — DB יחסום בכל מקרה
+  return n;
+}
+
 // P0-4: error wrapper לכל קריאות Supabase mutations.
 // מחזיר { ok, data, error }. אם ok=false — הקורא חייב להציג toast ולא לעדכן state אופטימי.
 // כל error נרשם ל-console + נשלח ל-Sentry בפרודקשן.
@@ -30,16 +41,27 @@ const CR = 0.25;
 const DAY_HEB = ["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
 const MONTH_HEB = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 
-const ds = (d) => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dy=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${dy}`; };
+// P1-3: timezone lock — כל החישובים על פי Asia/Jerusalem גם אם המכשיר באזור זמן אחר.
+// משתמש ב-Intl.DateTimeFormat שמכיר את DST של ישראל אוטומטית.
+const TZ = "Asia/Jerusalem";
+const _dsFmt = new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}); // YYYY-MM-DD
+const _wdFmt = new Intl.DateTimeFormat("en-US",{timeZone:TZ,weekday:"short"}); // קצר: Sun/Mon/Tue/Wed/Thu/Fri/Sat
+const _WD_MAP = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+
+// המרה של Date אובייקט ל-YYYY-MM-DD במחוז זמן ישראל
+const ds = (d) => _dsFmt.format(d);
 const TODAY = ds(new Date());
 const fmt = (n) => `₪${Math.abs(Math.round(n)).toLocaleString("he-IL")}`;
-const isTue = (d) => new Date(d+"T12:00:00").getDay()===2;
-const dateObj = (d) => new Date(d+"T12:00:00");
-const shift = (d,days) => { const o=dateObj(d); o.setDate(o.getDate()+days); return ds(o); };
+// יום בשבוע של תאריך (0=ראשון..6=שבת), במחוז זמן ישראל
+const _getDay = (d) => _WD_MAP[_wdFmt.format(d)];
+const isTue = (d) => _getDay(new Date(d+"T12:00:00Z"))===2;
+// תאריך 'YYYY-MM-DD' → Date אובייקט שמתקבע על הצהריים UTC (12:00:00Z נמצא תמיד באותו יום בכל timezone)
+const dateObj = (d) => new Date(d+"T12:00:00Z");
+const shift = (d,days) => { const o=dateObj(d); o.setUTCDate(o.getUTCDate()+days); return ds(o); };
 
-// P0-1: מחזור שלישי–שני (מחזור מסירת מזומן)
+// P0-1 + P1-3: מחזור שלישי–שני (מחזור מסירת מזומן), כל החישובים ב-Asia/Jerusalem
 function getDeliveryTuesdayOf(dateStr) {
-  const d=dateObj(dateStr), day=d.getDay();
+  const d=dateObj(dateStr), day=_getDay(d);
   if(day===2) return dateStr;
   const daysUntilTue=(2-day+7)%7||7;
   return shift(dateStr,daysUntilTue);
@@ -50,16 +72,31 @@ function getDeliveryCycle(deliveryTuesdayStr) {
 }
 
 function getWeekOf(dateStr) {
-const d=dateObj(dateStr), sun=new Date(d);
-sun.setDate(d.getDate()-d.getDay());
-return Array.from({length:7},(_,i)=>{ const nd=new Date(sun); nd.setDate(sun.getDate()+i); return ds(nd); });
+  const day=_getDay(dateObj(dateStr));
+  const sunday=shift(dateStr,-day);
+  return Array.from({length:7},(_,i)=>shift(sunday,i));
+}
+
+// פונקציות עזר לשנה/חודש של תאריך לפי Asia/Jerusalem
+const _ymFmt = new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit"});
+function _getYearMonth(d){
+  const [y,m]=_ymFmt.format(d).split("-").map(Number);
+  return {year:y,month:m-1}; // 0-based month
 }
 
 function getMonthGrid(year,month) {
-const first=new Date(year,month,1), last=new Date(year,month+1,0), cells=[];
-for(let i=0;i<first.getDay();i++) cells.push(null);
-for(let d=1;d<=last.getDate();d++) cells.push(ds(new Date(year,month,d)));
-return cells;
+  // יוצרים תאריך התחלה ב-UTC על צהריים — שיתורגם תמיד לאותו תאריך ב-Asia/Jerusalem
+  const firstStr=`${year}-${String(month+1).padStart(2,"0")}-01`;
+  const firstDOW=_getDay(dateObj(firstStr));
+  // מספר ימים בחודש: כמה ימים מ-1 בחודש עד ראשון של החודש הבא, מינוס 1
+  const nextMonthYear=month===11?year+1:year;
+  const nextMonth=month===11?0:month+1;
+  const lastDayStr=`${nextMonthYear}-${String(nextMonth+1).padStart(2,"0")}-01`;
+  const daysInMonth=Math.round((dateObj(lastDayStr)-dateObj(firstStr))/86400000);
+  const cells=[];
+  for(let i=0;i<firstDOW;i++) cells.push(null);
+  for(let d=1;d<=daysInMonth;d++) cells.push(`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+  return cells;
 }
 
 const ST_ON = { pending:{l:"ממתין",i:"⏳",c:"#B45309"}, done:{l:"בוצע",i:"✅",c:"#0D6F4F"}, paid:{l:"שולם",i:"💰",c:"#1B4FD8"}, deferred_monthly:{l:"נדחה לחודש",i:"📅",c:"#6D28D9"}, deferred_tuesday:{l:"נדחה לשלישי",i:"⏰",c:"#0891B2"} };
@@ -358,7 +395,7 @@ color:isSel?"#fff":act&&!isSel?C.green:fut?C.disabled:isTod?C.blue:C.sub,
 borderRadius:10,padding:"5px 0",fontSize:10,fontWeight:isSel?800:600,cursor:fut?"default":"pointer",
 display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
 <span>{DAY_HEB[i]}</span>
-<span style={{fontSize:15,fontWeight:800}}>{dateObj(d).getDate()}</span>
+<span style={{fontSize:15,fontWeight:800}}>{Number(d.split("-")[2])}</span>
 <span style={{width:4,height:4,borderRadius:"50%",background:act&&!isSel?C.green:"transparent"}}/>
 </button>
 );
@@ -380,7 +417,8 @@ const cmBonus=calMDays.reduce((s,d)=>s+(data.workDays[d]?.bonus||0),0);
 const cmComm=data.upsells.filter(u=>calMDays.includes(u.date)&&(u.status==="paid"||u.status==="deferred_monthly")).reduce((s,u)=>s+(u.commission||0),0);
 const cmTotal=cmActive*BASE+cmTips+cmBonus+cmComm;
 const prevMo=()=>{if(calMonth===0){setCalYear(y=>y-1);setCalMonth(11);}else setCalMonth(m=>m-1);};
-const canNext=calYear<new Date().getFullYear()||(calYear===new Date().getFullYear()&&calMonth<new Date().getMonth());
+const _todayYM=_getYearMonth(new Date());
+const canNext=calYear<_todayYM.year||(calYear===_todayYM.year&&calMonth<_todayYM.month);
 const nextMo=()=>{if(!canNext)return;if(calMonth===11){setCalYear(y=>y+1);setCalMonth(0);}else setCalMonth(m=>m+1);};
 return(
 <div style={{...card(),padding:0,overflow:"hidden"}}>
@@ -403,7 +441,7 @@ style={{background:isSel?C.blue:act?C.greenBg:isTod?"#EFF6FF":C.surface,
 border:`1.5px solid ${isSel?C.blue:act?C.greenBdr:isTod?C.blue+"44":C.border}`,
 borderRadius:10,padding:"6px 2px",cursor:fut?"default":"pointer",
 display:"flex",flexDirection:"column",alignItems:"center",gap:2,minHeight:52,opacity:fut?0.25:1}}>
-<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?C.disabled:isTod?C.blue:C.navy}}>{dateObj(d).getDate()}</span>
+<span style={{fontSize:13,fontWeight:isTod?800:600,color:isSel?"#fff":act?C.green:fut?C.disabled:isTod?C.blue:C.navy}}>{Number(d.split("-")[2])}</span>
 <div style={{display:"flex",gap:2,justifyContent:"center",flexWrap:"wrap"}}>
 {act&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.8)":C.green}}/>}
 {(wd?.tips||0)>0&&<span style={{width:4,height:4,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.6)":C.amber}}/>}
@@ -467,8 +505,9 @@ const [data,setData]=useState({workDays:{},upsells:[]});
 const [loading,setLoading]=useState(true);
 const [tab,setTab]=useState("field");
 const [selDate,setSelDate]=useState(TODAY);
-const [calYear,setCalYear]=useState(new Date().getFullYear());
-const [calMonth,setCalMonth]=useState(new Date().getMonth());
+// P1-3: timezone-aware initial calendar position
+const [calYear,setCalYear]=useState(()=>_getYearMonth(new Date()).year);
+const [calMonth,setCalMonth]=useState(()=>_getYearMonth(new Date()).month);
 const [tipIn,setTipIn]=useState("");
 const [cashIn,setCashIn]=useState("");
 const [bonusIn,setBonusIn]=useState("");
@@ -484,8 +523,17 @@ const [chipMenuId,setChipMenuId]=useState(null);
 const [paidConfirmId,setPaidConfirmId]=useState(null);
 const [modalDay,setModalDay]=useState(null);
 const [showPrivacy,setShowPrivacy]=useState(false);
-const [cookieConsent,setCookieConsent]=useState(()=>!!localStorage.getItem("cookieConsent"));
-const acceptCookies=()=>{localStorage.setItem("cookieConsent","1");setCookieConsent(true);};
+// P1-8: busy state למניעת double-submit. ערך = id של הפעולה הפעילה (או "global")
+const [busy,setBusy]=useState(null);
+const [showSettings,setShowSettings]=useState(false);
+const [deleteAccountStep,setDeleteAccountStep]=useState(0); // 0=closed, 1=confirm, 2=type-confirm
+// P1-7: localStorage לא תמיד זמין (iOS Safari Private, Mobile Safari quotaExceeded וכו')
+const safeLS={
+  get:(k)=>{try{return localStorage.getItem(k);}catch{return null;}},
+  set:(k,v)=>{try{localStorage.setItem(k,v);return true;}catch{return false;}}
+};
+const [cookieConsent,setCookieConsent]=useState(()=>!!safeLS.get("cookieConsent"));
+const acceptCookies=()=>{safeLS.set("cookieConsent","1");setCookieConsent(true);};
 
 useEffect(()=>{
 supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setAuthLoading(false);});
@@ -550,8 +598,9 @@ setData(d=>({...d,workDays:{...d.workDays,[date]:merged}}));
 
 const selDay=data.workDays[selDate]||{isActive:false,tips:0,cashFromClients:0,bonus:0};
 const selWk=getWeekOf(selDate);
-const selDObj=dateObj(selDate);
-const selMDays=getMonthGrid(selDObj.getFullYear(),selDObj.getMonth()).filter(Boolean);
+// P1-3: parse YYYY-MM-DD ישירות במקום .getFullYear()/.getMonth() שתלויים ב-timezone של הדפדפן
+const [_selY,_selM]=selDate.split("-").map(Number);
+const selMDays=getMonthGrid(_selY,_selM-1).filter(Boolean);
 
 // P0-1: מחזור מסירה שלישי–שני
 const deliveryTuesday=getDeliveryTuesdayOf(selDate);
@@ -578,47 +627,105 @@ const pendingComm=data.upsells.filter(u=>
 const tuesdayNet=wkCash-pendingComm;
 const pendingRefs=data.upsells.filter(u=>u.type==="referral"&&u.status==="pending");
 const selUpsells=data.upsells.filter(u=>u.date===selDate);
-const chipLabel=tab==="field"?`${wkActive} ימים השבוע · ${fmt(wkTotal)}`:tab==="summary"?`${MONTH_HEB[selDObj.getMonth()]} · ${fmt(moTotal)}`:`שבוע · ${fmt(wkTotal)}`;
+const chipLabel=tab==="field"?`${wkActive} ימים השבוע · ${fmt(wkTotal)}`:tab==="summary"?`${MONTH_HEB[_selM-1]} · ${fmt(moTotal)}`:`שבוע · ${fmt(wkTotal)}`;
 const chipColor=wkActive>0?{bg:C.greenBg,border:C.greenBdr,text:C.green}:{bg:C.surfaceAlt,border:C.border,text:C.muted};
 
 const toggleActive=()=>upsWD(selDate,{...selDay,isActive:!selDay.isActive});
-const addTip=()=>{const v=parseFloat(tipIn)||0;if(!v)return;upsWD(selDate,{...selDay,isActive:true,tips:(selDay.tips||0)+v});setTipIn("");flash("✅ טיפ נוסף");};
-const addCash=()=>{const v=parseFloat(cashIn)||0;if(!v)return;upsWD(selDate,{...selDay,isActive:true,cashFromClients:(selDay.cashFromClients||0)+v});setCashIn("");flash("✅ מזומן נוסף");};
-const addBonus=()=>{const v=parseFloat(bonusIn)||0;if(!v)return;upsWD(selDate,{...selDay,bonus:(selDay.bonus||0)+v});setBonusIn("");flash("✅ בונוס נוסף");};
-const saveEdit=()=>{const v=parseFloat(editVal)||0;const field=editMode==="tip"?"tips":editMode==="cash"?"cashFromClients":"bonus";upsWD(selDate,{...selDay,[field]:v});setEditMode(null);flash("✅ עודכן");};
+
+// P1-1: increment אטומי דרך RPC — מונע race condition כשהמשתמש פתוח בכמה מכשירים
+async function incrementField(date, field, delta) {
+  const res = await dbOp(supabase.rpc("increment_work_day", { p_date: date, p_field: field, p_delta: delta }));
+  if (!res.ok) return null;
+  const row = res.data;
+  if (!row) return null;
+  return { isActive: row.is_active, tips: Number(row.tips), cashFromClients: Number(row.cash_from_clients), bonus: Number(row.bonus) };
+}
+
+const addTip=async()=>{
+  const v=parseAmount(tipIn,99999);
+  if(v===null){if(tipIn.trim())flash("⚠️ סכום לא חוקי");return;}
+  const merged=await incrementField(selDate,"tips",v);
+  if(!merged){flash("⚠️ שגיאה בשמירה — נסה שוב");return;}
+  setData(d=>({...d,workDays:{...d.workDays,[selDate]:merged}}));
+  setTipIn("");flash("✅ טיפ נוסף");
+};
+const addCash=async()=>{
+  const v=parseAmount(cashIn,999999);
+  if(v===null){if(cashIn.trim())flash("⚠️ סכום לא חוקי");return;}
+  const merged=await incrementField(selDate,"cash_from_clients",v);
+  if(!merged){flash("⚠️ שגיאה בשמירה — נסה שוב");return;}
+  setData(d=>({...d,workDays:{...d.workDays,[selDate]:merged}}));
+  setCashIn("");flash("✅ מזומן נוסף");
+};
+const addBonus=async()=>{
+  const v=parseAmount(bonusIn,99999);
+  if(v===null){if(bonusIn.trim())flash("⚠️ סכום לא חוקי");return;}
+  const merged=await incrementField(selDate,"bonus",v);
+  if(!merged){flash("⚠️ שגיאה בשמירה — נסה שוב");return;}
+  setData(d=>({...d,workDays:{...d.workDays,[selDate]:merged}}));
+  setBonusIn("");flash("✅ בונוס נוסף");
+};
+const saveEdit=()=>{
+const MAX=editMode==="cash"?999999:99999;
+const v=parseAmount(editVal,MAX);
+if(v===null){flash("⚠️ סכום לא חוקי");return;}
+const field=editMode==="tip"?"tips":editMode==="cash"?"cashFromClients":"bonus";
+upsWD(selDate,{...selDay,[field]:v});setEditMode(null);flash("✅ עודכן");
+};
 
 const addUpsell=async()=>{
+if(busy)return; // P1-8: מניעת double-submit
 const iso=form.type==="onsite";
 if(iso&&(!form.address.trim()||!form.amount))return;
 if(!iso&&!form.phone.trim())return;
-const amt=iso?parseFloat(form.amount):0;
+let amt=0;
+if(iso){
+  // P1-4: ולידציה — סכום אפסייל בין 1 ל-999999
+  const parsed=parseAmount(form.amount,999999);
+  if(parsed===null){flash("⚠️ סכום לא חוקי");return;}
+  amt=parsed;
+}
+setBusy("addUpsell");
 const newUp={user_id:session.user.id,date:selDate,name:form.name.trim(),type:form.type,status:"pending",address:iso?form.address.trim():null,phone:!iso?form.phone.trim():null,amount:amt,commission:amt*CR};
 const res=await dbOp(supabase.from("upsells").insert(newUp).select().single());
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בהוספה — נסה שוב");return;}
 const ins=res.data;
 if(ins){const u={id:ins.id,date:ins.date,name:ins.name,type:ins.type,status:ins.status,address:ins.address,phone:ins.phone,amount:ins.amount,commission:ins.commission};setData(d=>({...d,upsells:[u,...d.upsells]}));}
 setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});setShowForm(false);flash("✅ נוספה הגדלה");
 };
 
-// P0-3: pending→done בלבד — done→paid דורש אישור מפורש
+// P0-3: pending→done בלבד — done→paid דורש אישור מפורש. P1-8: busy למניעת double-tap
 const advOnsite=async(id)=>{
+if(busy)return;
 const u=data.upsells.find(u=>u.id===id);if(u.status!=="pending")return;
+setBusy(id);
 const res=await dbOp(supabase.from("upsells").update({status:"done"}).eq("id",id));
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"done"})}));setChipMenuId(null);
 };
 const startCnf=(id)=>{setConfirmId(id);setConfirmAmt("");setChipMenuId(null);};
 const submitCnf=async()=>{
-const a=parseFloat(confirmAmt);if(!a||a<=0)return;const c=a*CR;
+if(busy)return;
+// P1-4: ולידציה — סכום אישור בין 1 ל-999999
+const a=parseAmount(confirmAmt,999999);
+if(a===null){flash("⚠️ סכום לא חוקי");return;}
+const c=a*CR;
+setBusy(confirmId);
 const res=await dbOp(supabase.from("upsells").update({status:"confirmed",amount:a,commission:c}).eq("id",confirmId));
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה באישור — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==confirmId?u:{...u,status:"confirmed",amount:a,commission:c})}));setConfirmId(null);flash("✅ אושר");
 };
 // P0-3: מחיקה רכה (soft delete) עם אישור שני-שלב
 const delUp=async(id)=>{
+if(busy)return;
 if(deleteConfirmId!==id){setDeleteConfirmId(id);return;}
+setBusy(id);
 const now=new Date().toISOString();
 const res=await dbOp(supabase.from("upsells").update({deleted_at:now}).eq("id",id));
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה במחיקה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.filter(u=>u.id!==id)}));
 setDeleteConfirmId(null);flash("🗑 נמחק");
@@ -626,21 +733,72 @@ setDeleteConfirmId(null);flash("🗑 נמחק");
 // paid דרך אישור מפורש בלבד (כל המסלולים)
 const requestPaid=(id)=>{setChipMenuId(null);setPaidConfirmId(id);};
 const executePaid=async(id)=>{
+if(busy)return;
+setBusy(id);
 const now=new Date().toISOString();
 const res=await dbOp(supabase.from("upsells").update({status:"paid",paid_at:now}).eq("id",id));
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בסימון כשולם — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"paid",paid_at:now})}));setPaidConfirmId(null);flash("✅ שולם");
 };
 const deferMonthly=async(id)=>{
+if(busy)return;
+setBusy(id);
 const res=await dbOp(supabase.from("upsells").update({status:"deferred_monthly"}).eq("id",id));
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בדחייה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_monthly"})}));setChipMenuId(null);flash("📅 נדחה לחישוב חודשי");
 };
 const deferTuesday=async(id)=>{
+if(busy)return;
+setBusy(id);
 const nextTue=getDeliveryTuesdayOf(shift(deliveryTuesday,1));
 const res=await dbOp(supabase.from("upsells").update({status:"deferred_tuesday",deferred_until:nextTue}).eq("id",id));
+setBusy(null);
 if(!res.ok){flash("⚠️ שגיאה בדחייה — נסה שוב");return;}
 setData(d=>({...d,upsells:d.upsells.map(u=>u.id!==id?u:{...u,status:"deferred_tuesday",deferred_until:nextTue})}));setChipMenuId(null);flash("⏰ נדחה לשלישי הבא");
+};
+
+// P1-2: ייצוא כל הנתונים של המשתמש כקובץ JSON להורדה (GDPR right of access)
+const exportMyData=async()=>{
+  if(busy)return;
+  setBusy("export");
+  const [wd,up]=await Promise.all([
+    dbOp(supabase.from("work_days").select("*").eq("user_id",session.user.id)),
+    dbOp(supabase.from("upsells").select("*").eq("user_id",session.user.id))
+  ]);
+  setBusy(null);
+  if(!wd.ok||!up.ok){flash("⚠️ שגיאה בייצוא — נסה שוב");return;}
+  const payload={
+    exported_at:new Date().toISOString(),
+    user:{id:session.user.id,email:session.user.email},
+    work_days:wd.data||[],
+    upsells:up.data||[],
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`karisham-export-${TODAY}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  flash("✅ הקובץ הורד");
+};
+
+// P1-2: מחיקת חשבון מלאה — GDPR/Apple compliance
+const deleteMyAccount=async()=>{
+  if(busy)return;
+  setBusy("delete-account");
+  const res=await dbOp(supabase.rpc("delete_my_account"));
+  if(!res.ok){setBusy(null);flash("⚠️ שגיאה במחיקה — נסה שוב");return;}
+  // התנתקות סופית
+  await supabase.auth.signOut();
+  // ניקוי localStorage
+  try{localStorage.clear();}catch{/* ignore */}
+  setBusy(null);
+  setDeleteAccountStep(0);
+  setShowSettings(false);
+  // ה-onAuthStateChange יזרוק אותנו ל-AuthScreen
 };
 
 const pill=(a,col=C.blue)=>({flex:1,background:a?col:C.surface,border:`1.5px solid ${a?col:C.border}`,borderRadius:10,padding:"10px",fontSize:14,fontWeight:700,color:a?"#fff":C.sub,cursor:"pointer",transition:TRANS.btn,WebkitTapHighlightColor:"transparent"});
@@ -715,8 +873,8 @@ const renderField=()=>(
 <div style={{background:C.amberBg,border:`1px solid ${C.amberBdr}`,borderRadius:10,padding:"10px 14px",fontSize:13,color:C.amber,marginBottom:16}}>📞 מסור למנהל ביום שלישי</div>
 </>}
 <div style={{display:"flex",gap:8}}>
-<button onClick={addUpsell} style={{...BTNP,flex:2,padding:14}}>הוסף</button>
-<button onClick={()=>{setShowForm(false);setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});}} style={{...BTNS,flex:1,padding:14}}>ביטול</button>
+<button onClick={addUpsell} disabled={busy==="addUpsell"} style={{...BTNP,flex:2,padding:14,opacity:busy==="addUpsell"?0.6:1}}>{busy==="addUpsell"?"שומר...":"הוסף"}</button>
+<button onClick={()=>{setShowForm(false);setForm({name:"",address:"",phone:"",amount:"",type:"onsite"});}} disabled={busy==="addUpsell"} style={{...BTNS,flex:1,padding:14,opacity:busy==="addUpsell"?0.6:1}}>ביטול</button>
 </div>
 </div>
 )}
@@ -736,7 +894,7 @@ return(
 <div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{...card(),background:`linear-gradient(135deg,${C.blue},${C.navy})`,border:"none",margin:"0 16px 12px"}}>
 <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:"0.08em",marginBottom:4}}>
-סה"כ הכנסות — {MONTH_HEB[selDObj.getMonth()]} {selDObj.getFullYear()}
+סה"כ הכנסות — {MONTH_HEB[_selM-1]} {_selY}
 </div>
 <div style={{fontSize:44,fontWeight:900,color:"#fff",lineHeight:1,letterSpacing:"-0.02em"}}>{fmt(moTotal)}</div>
 <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:4,borderTop:"1px solid rgba(255,255,255,0.15)",paddingTop:16}}>
@@ -833,6 +991,62 @@ const overlays=(<>
 {chipMenuId&&<div onClick={()=>setChipMenuId(null)} style={{position:"fixed",inset:0,zIndex:98,WebkitTapHighlightColor:"transparent"}}/>}
 {!cookieConsent&&<CookieBanner onAccept={acceptCookies} onOpenPrivacy={()=>setShowPrivacy(true)}/>}
 {showPrivacy&&<PrivacyModal onClose={()=>setShowPrivacy(false)}/>}
+{showSettings&&(
+  <div style={{position:"fixed",inset:0,background:C.overlay,zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={()=>{setShowSettings(false);setDeleteAccountStep(0);}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:C.white,width:"100%",maxHeight:"85dvh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"16px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+        <div style={{fontSize:16,fontWeight:800,color:C.navy}}>הגדרות</div>
+        <button onClick={()=>{setShowSettings(false);setDeleteAccountStep(0);}} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.muted,lineHeight:1,padding:0,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+      </div>
+      <div style={{padding:"20px",overflowY:"auto",flex:1,direction:"rtl",paddingBottom:"calc(20px + env(safe-area-inset-bottom))"}}>
+        <div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600,letterSpacing:"0.06em"}}>חשבון</div>
+        <div style={{fontSize:14,color:C.navy,marginBottom:24,fontWeight:600,direction:"ltr",textAlign:"right"}}>{session?.user?.email}</div>
+
+        <div style={{...LBL,marginBottom:8}}>פעולות פרטיות</div>
+
+        <button onClick={exportMyData} disabled={busy==="export"} style={{...BTNS,width:"100%",marginBottom:10,opacity:busy==="export"?0.6:1,textAlign:"right",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>📥 הורד את כל הנתונים שלי</span>
+          <span style={{fontSize:12,color:C.muted,fontWeight:500}}>{busy==="export"?"מכין...":"JSON"}</span>
+        </button>
+        <div style={{fontSize:11,color:C.muted,marginBottom:20,lineHeight:1.5}}>קובץ עם כל ימי העבודה, אפסיילים, ופרטי חשבון. אפשר לפתוח בכל עורך טקסט.</div>
+
+        <button onClick={()=>setShowPrivacy(true)} style={{...BTNS,width:"100%",marginBottom:20,textAlign:"right"}}>
+          📋 מדיניות פרטיות
+        </button>
+
+        <div style={{height:1,background:C.border,margin:"20px 0"}}/>
+
+        <div style={{...LBL,marginBottom:8,color:C.red}}>אזור מסוכן</div>
+
+        {deleteAccountStep===0&&(
+          <button onClick={()=>setDeleteAccountStep(1)} style={{background:"#FEF2F2",border:`1.5px solid #FECACA`,color:C.red,borderRadius:12,padding:"14px 20px",fontSize:14,fontWeight:700,cursor:"pointer",width:"100%",textAlign:"right"}}>
+            🗑 מחק את החשבון שלי
+          </button>
+        )}
+        {deleteAccountStep===1&&(
+          <div style={{background:"#FEF2F2",border:`1.5px solid #FECACA`,borderRadius:12,padding:16}}>
+            <div style={{fontSize:14,color:C.red,fontWeight:700,marginBottom:8}}>⚠️ פעולה בלתי הפיכה</div>
+            <div style={{fontSize:13,color:C.navy,marginBottom:14,lineHeight:1.6}}>מחיקת חשבון תמחק לצמיתות: כל ימי העבודה, אפסיילים, הפניות, וגם את החשבון עצמו. <strong>אין אפשרות לשחזר.</strong> מומלץ להוריד את הנתונים קודם.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setDeleteAccountStep(2)} style={{background:C.red,color:"#fff",border:"none",borderRadius:10,padding:"12px 20px",fontWeight:700,cursor:"pointer",flex:1,fontSize:14}}>הבנתי, המשך</button>
+              <button onClick={()=>setDeleteAccountStep(0)} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:10,padding:"12px 16px",cursor:"pointer",fontSize:14}}>ביטול</button>
+            </div>
+          </div>
+        )}
+        {deleteAccountStep===2&&(
+          <div style={{background:"#FEF2F2",border:`1.5px solid ${C.red}`,borderRadius:12,padding:16}}>
+            <div style={{fontSize:14,color:C.red,fontWeight:700,marginBottom:10}}>אישור אחרון לפני מחיקה</div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}>לחיצה על "מחק כעת" תמחק לתמיד את החשבון <strong style={{color:C.navy}}>{session?.user?.email}</strong> וכל הנתונים שלך.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={deleteMyAccount} disabled={busy==="delete-account"} style={{background:C.red,color:"#fff",border:"none",borderRadius:10,padding:"12px 20px",fontWeight:700,cursor:"pointer",flex:1,fontSize:14,opacity:busy==="delete-account"?0.6:1}}>{busy==="delete-account"?"מוחק...":"🗑 מחק כעת"}</button>
+              <button onClick={()=>setDeleteAccountStep(0)} disabled={busy==="delete-account"} style={{background:C.surfaceAlt,color:C.muted,border:"none",borderRadius:10,padding:"12px 16px",cursor:"pointer",fontSize:14}}>ביטול</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 </>);
 
 if(authLoading)return<div style={{background:C.white,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>⏳</div>;
@@ -854,6 +1068,7 @@ return(
 </div>
 <div style={{display:"flex",alignItems:"center",gap:8}}>
 <div style={{background:chipColor.bg,border:`1px solid ${chipColor.border}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:chipColor.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"55vw"}}>{chipLabel}</div>
+<button onClick={()=>setShowSettings(true)} title="הגדרות" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:14,lineHeight:1}}>⚙</button>
 <button onClick={()=>supabase.auth.signOut()} title="יציאה" style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,color:C.muted,fontSize:16,lineHeight:1}}>←</button>
 </div>
 </div>
