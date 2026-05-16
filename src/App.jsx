@@ -767,45 +767,52 @@ const target=tabScrollRef.current[tab]||0;
 requestAnimationFrame(()=>{ root.scrollTop=target; setScrolled(target>4); });
 },[tab]);
 
-// UX-P4: Pull-to-refresh — triggers reload when user pulls down at top
+// UX-P4: Pull-to-refresh — triggers reload when user pulls down at top.
+// Uses a ref for currentDist to avoid re-attaching listeners on every move.
+const pullDistRef=useRef(0);
 useEffect(()=>{
 const root=document.getElementById("root");
 if(!root||!session)return;
-let startY=0; let dragging=false;
+let startY=0; let dragging=false; let activated=false;
 const onStart=(e)=>{
-  if(root.scrollTop>2)return;
-  startY=e.touches[0].clientY; dragging=true; setPullDist(0);
+  // only consider starting a pull if we're at the very top
+  if(root.scrollTop>0)return;
+  startY=e.touches[0].clientY; dragging=true; activated=false;
 };
 const onMove=(e)=>{
   if(!dragging)return;
   const dy=e.touches[0].clientY-startY;
-  if(dy<=0){setPullDist(0);return;}
-  if(root.scrollTop<=0){
-    // resistance — easier first, harder as we pull
-    const eased=Math.min(120,Math.pow(dy,0.85));
-    setPullDist(eased);
+  // If user is moving up (negative dy) or root has scrolled, cancel pull
+  if(dy<=0||root.scrollTop>0){
+    if(activated){pullDistRef.current=0;setPullDist(0);activated=false;}
+    return;
   }
+  // dy is positive — user pulling down at top
+  const eased=Math.min(120,Math.pow(dy,0.85));
+  pullDistRef.current=eased;
+  setPullDist(eased);
+  activated=true;
 };
 const onEnd=async()=>{
   if(!dragging)return;
   dragging=false;
-  const d=pullDist; setPullDist(0);
-  if(d>=70){
-    setRefreshing(true); haptics.medium();
-    // re-trigger load by tickling session reference (do a full reload of data)
-    try{
-      const[wdRes,upRes]=await Promise.all([
-        dbOp(supabase.from("work_days").select("*").eq("user_id",session.user.id)),
-        dbOp(supabase.from("upsells").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false}))
-      ]);
-      if(wdRes.ok&&upRes.ok){
-        const workDays={};(wdRes.data||[]).forEach(r=>{workDays[r.date]={isActive:r.is_active,tips:r.tips,cashFromClients:r.cash_from_clients,bonus:r.bonus};});
-        const upsells=(upRes.data||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission,paid_at:r.paid_at,deferred_until:r.deferred_until,deleted_at:r.deleted_at}));
-        setData({workDays,upsells});
-      }
-    }catch{/* ignore */}
-    setRefreshing(false);
-  }
+  const d=pullDistRef.current;
+  pullDistRef.current=0;
+  setPullDist(0);
+  if(!activated||d<70)return;
+  setRefreshing(true); haptics.medium();
+  try{
+    const[wdRes,upRes]=await Promise.all([
+      dbOp(supabase.from("work_days").select("*").eq("user_id",session.user.id)),
+      dbOp(supabase.from("upsells").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false}))
+    ]);
+    if(wdRes.ok&&upRes.ok){
+      const workDays={};(wdRes.data||[]).forEach(r=>{workDays[r.date]={isActive:r.is_active,tips:r.tips,cashFromClients:r.cash_from_clients,bonus:r.bonus};});
+      const upsells=(upRes.data||[]).map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,status:r.status,address:r.address,phone:r.phone,amount:r.amount,commission:r.commission,paid_at:r.paid_at,deferred_until:r.deferred_until,deleted_at:r.deleted_at}));
+      setData({workDays,upsells});
+    }
+  }catch{/* ignore */}
+  setRefreshing(false);
 };
 root.addEventListener("touchstart",onStart,{passive:true});
 root.addEventListener("touchmove",onMove,{passive:true});
@@ -817,7 +824,7 @@ return()=>{
   root.removeEventListener("touchend",onEnd);
   root.removeEventListener("touchcancel",onEnd);
 };
-},[session,pullDist]);
+},[session]);
 
 const flash=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2000); if(msg.startsWith("⚠️")) haptics.warning(); else if(msg.startsWith("✅")||msg.startsWith("🗑")||msg.startsWith("📅")||msg.startsWith("⏰")) haptics.light();};
 const goTo=useCallback((d)=>{setSelDate(d);setShowForm(false);setTipIn("");setCashIn("");setBonusIn("");},[]);
@@ -1022,7 +1029,7 @@ const openDeleteSheet=(u)=>setActionSheet({type:"upsellDelete",u});
 const upProps={onOpenStatusSheet:openStatusSheet,onDelete:openDeleteSheet};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:"calc(60px + env(safe-area-inset-bottom) + 12px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 16px"}}>
 {selDay.isActive?(
 // UX-P4: Hero card הופך לaction sheet בלחיצה — מונע ביטול בטעות
@@ -1072,7 +1079,7 @@ const renderField=()=>(
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>!["paid","deferred_monthly","deferred_tuesday"].includes(u.status));
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{background:C.ink,borderRadius:R.l,padding:"22px 24px",margin:"0 16px 16px",boxShadow:"0 8px 24px rgba(0,0,0,0.16)"}}>
 <div style={{fontSize:12,color:"rgba(255,255,255,0.65)",fontWeight:500,letterSpacing:"0.04em",marginBottom:8}}>
 סך הכל בחודש · {MONTH_HEB[_selM-1]} {_selY}
@@ -1108,7 +1115,7 @@ const cycleCommUpsells=data.upsells.filter(u=>
   ||(u.status==="deferred_tuesday"&&u.deferred_until===deliveryTuesday)
 );
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(49px + env(safe-area-inset-bottom) + 8px)",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
 <button onClick={()=>goTo(shift(deliveryTuesday,-7))} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
 <div style={{textAlign:"center"}}>
