@@ -35,10 +35,10 @@ Sentry.init({
   dsn: 'https://54d7918abefb443fb7748776b9ae2241@o4511360802291712.ingest.us.sentry.io/4511399842086912',
   enabled: import.meta.env.PROD,
   environment: import.meta.env.MODE,
-  // sampling — בפרויקט קטן עם משתמש יחיד מספיק לדגום מעט
-  tracesSampleRate: 0.2,
-  replaysSessionSampleRate: 0,        // ללא session replay רגיל (חוסך quota)
-  replaysOnErrorSampleRate: 1.0,      // אם יש error — מצלם session ל-debug
+  // sampling — דוגמים את כל הסשנים (משתמש יחיד, אבחון UX)
+  tracesSampleRate: 1.0,
+  replaysSessionSampleRate: 1.0,      // מצלם כל סשן (לאיתור באגי UX לפי שימוש בפועל)
+  replaysOnErrorSampleRate: 1.0,      // וגם כשיש error
   // הפעלות
   integrations: [
     Sentry.browserTracingIntegration(),

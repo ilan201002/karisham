@@ -380,12 +380,12 @@ return(
 
 function CookieBanner({onAccept,onOpenPrivacy}){
 return(
-<div style={{position:"fixed",bottom:0,left:0,right:0,background:C.navy,color:"#fff",padding:"14px 16px",paddingBottom:"calc(14px + env(safe-area-inset-bottom))",zIndex:150,direction:"rtl",display:"flex",flexDirection:"column",gap:10}}>
-<div style={{fontSize:13,lineHeight:1.6}}>
+<div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(28,28,30,0.96)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",color:"#fff",padding:"16px 18px",paddingBottom:"calc(16px + env(safe-area-inset-bottom))",zIndex:150,direction:"rtl",display:"flex",flexDirection:"column",gap:12,boxShadow:"0 -4px 16px rgba(0,0,0,0.08)"}}>
+<div style={{fontSize:14,lineHeight:1.5,fontWeight:500}}>
 האפליקציה משתמשת בעוגיות הזדהות כדי לשמור אותך מחובר.
-{" "}<button onClick={onOpenPrivacy} style={{background:"none",border:"none",color:"#93C5FD",fontSize:13,cursor:"pointer",padding:0,textDecoration:"underline",fontFamily:"inherit"}}>מדיניות פרטיות</button>
+{" "}<button onClick={onOpenPrivacy} style={{background:"transparent",border:"none",color:"#9EC5FF",fontSize:14,cursor:"pointer",padding:0,fontWeight:500,fontFamily:"inherit",textDecoration:"underline"}}>מדיניות פרטיות</button>
 </div>
-<button onClick={onAccept} style={{background:C.blue,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:"pointer",alignSelf:"flex-start",fontFamily:"inherit"}}>הבנתי, אישור</button>
+<button onClick={onAccept} style={{background:C.brand,color:"#fff",border:"none",borderRadius:R.s+4,padding:"13px 22px",fontWeight:600,fontSize:15,cursor:"pointer",alignSelf:"flex-start",fontFamily:"inherit",WebkitTapHighlightColor:"transparent"}}>הבנתי, אישור</button>
 </div>
 );
 }
@@ -414,33 +414,32 @@ setLoading(false);
 
 return (
 <div style={{background:C.bg,minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"calc(24px + env(safe-area-inset-top))",paddingBottom:24,paddingLeft:"calc(24px + env(safe-area-inset-left))",paddingRight:"calc(24px + env(safe-area-inset-right))",fontFamily:"-apple-system,'Heebo',sans-serif",direction:"rtl"}}>
-<div style={{width:"100%",maxWidth:"min(400px, 100% - 48px)"}}>
-<div style={{textAlign:"center",marginBottom:32}}>
-<img src="/apple-touch-icon.png" style={{width:72,height:72,borderRadius:18,marginBottom:14,boxShadow:"0 8px 20px rgba(0,0,0,0.12)"}}/>
-<div style={{fontSize:28,fontWeight:700,color:C.ink,letterSpacing:"-0.02em"}}>כרישים בניקיון</div>
+<div style={{width:"100%",maxWidth:"min(420px, 100% - 48px)"}}>
+<div style={{textAlign:"center",marginBottom:36}}>
+<img src="/apple-touch-icon.png" style={{width:80,height:80,borderRadius:20,marginBottom:16,boxShadow:"0 12px 28px rgba(0,0,0,0.16)"}}/>
+<div style={{fontSize:30,fontWeight:700,color:C.ink,letterSpacing:"-0.02em"}}>כרישים בניקיון</div>
 <div style={{fontSize:15,color:C.inkTertiary,marginTop:6,fontWeight:500}}>ניהול שטח מקצועי</div>
 </div>
-<div style={card()}>
-<div style={{display:"flex",marginBottom:20,background:C.surfaceAlt,borderRadius:10,padding:4}}>
-<button onClick={()=>setIsLogin(true)} style={{flex:1,border:"none",borderRadius:8,padding:"10px",fontWeight:700,fontSize:14,cursor:"pointer",background:isLogin?C.white:"transparent",color:isLogin?C.navy:C.muted,transition:"all 0.2s"}}>התחברות</button>
-<button onClick={()=>setIsLogin(false)} style={{flex:1,border:"none",borderRadius:8,padding:"10px",fontWeight:700,fontSize:14,cursor:"pointer",background:!isLogin?C.white:"transparent",color:!isLogin?C.navy:C.muted,transition:"all 0.2s"}}>הרשמה</button>
-</div>
-<div style={{marginBottom:16}}>
-<label style={LBL}>אימייל</label>
-<input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={INP} placeholder="your@email.com" dir="ltr"/>
-</div>
+<div style={{background:C.surface,border:`1px solid ${C.borderSubtle}`,borderRadius:R.l,padding:20,boxShadow:C.shMd}}>
 <div style={{marginBottom:20}}>
-<label style={LBL}>סיסמא</label>
-<input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={INP} placeholder="••••••••" dir="ltr"/>
+<SegmentedControl options={[{value:"login",label:"התחברות"},{value:"signup",label:"הרשמה"}]} value={isLogin?"login":"signup"} onChange={(v)=>setIsLogin(v==="login")}/>
 </div>
-{error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 14px",color:C.red,fontSize:13,marginBottom:16}}>{error}</div>}
-{msg&&<div style={{background:C.greenBg,border:`1px solid ${C.greenBdr}`,borderRadius:8,padding:"10px 14px",color:C.green,fontSize:13,marginBottom:16}}>{msg}</div>}
+<div style={{marginBottom:14}}>
+<label style={LBL}>אימייל</label>
+<input type="email" autoComplete="email" enterKeyHint="next" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={INP} placeholder="your@email.com" dir="ltr"/>
+</div>
+<div style={{marginBottom:18}}>
+<label style={LBL}>סיסמה</label>
+<input type="password" autoComplete={isLogin?"current-password":"new-password"} enterKeyHint="done" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={INP} placeholder="••••••••" dir="ltr"/>
+</div>
+{error&&<div style={{background:C.dangerSoft,border:`1px solid ${C.danger}33`,borderRadius:R.s+2,padding:"10px 14px",color:C.dangerDeep,fontSize:13,marginBottom:14,fontWeight:500,display:"flex",alignItems:"center",gap:8}}><Icon name="alert" size={16} strokeWidth={2.2} color={C.dangerDeep}/><span>{error}</span></div>}
+{msg&&<div style={{background:C.successSoft,border:`1px solid ${C.success}33`,borderRadius:R.s+2,padding:"10px 14px",color:C.successDeep,fontSize:13,marginBottom:14,fontWeight:500,display:"flex",alignItems:"center",gap:8}}><Icon name="check" size={16} strokeWidth={2.2} color={C.successDeep}/><span>{msg}</span></div>}
 <button onClick={handle} disabled={loading} style={{...BTNP,opacity:loading?0.7:1}}>
-{loading?"טוען...":isLogin?"התחבר":"הירשם"}
+{loading?"טוען…":isLogin?"התחבר":"הירשם"}
 </button>
 </div>
 <div style={{textAlign:"center",marginTop:20}}>
-<button onClick={onPrivacy} style={{background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer",textDecoration:"underline",fontFamily:"inherit"}}>מדיניות פרטיות</button>
+<button onClick={onPrivacy} style={{background:"transparent",border:"none",color:C.inkTertiary,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:500,padding:"6px 12px"}}>מדיניות פרטיות</button>
 </div>
 </div>
 </div>
@@ -534,7 +533,7 @@ const wkStart=dateObj(selWk[0]),wkEnd=dateObj(selWk[6]);
 const wkLabel=selWk.includes(TODAY)?"השבוע הנוכחי":`${wkStart.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}–${wkEnd.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}`;
 const canFwd=selWk[6]<TODAY;
 return(
-<div style={{background:scrolled?`rgba(245,245,247,0.85)`:C.bg,backdropFilter:scrolled?"blur(20px) saturate(180%)":"none",WebkitBackdropFilter:scrolled?"blur(20px) saturate(180%)":"none",borderBottom:scrolled?`0.5px solid ${C.border}`:`0.5px solid transparent`,padding:"10px 16px 12px",transition:"background 0.2s ease, border-color 0.2s ease"}}>
+<div style={{background:scrolled?`rgba(245,245,247,0.92)`:C.bg,backdropFilter:scrolled?"blur(24px) saturate(180%)":"none",WebkitBackdropFilter:scrolled?"blur(24px) saturate(180%)":"none",borderBottom:scrolled?`0.5px solid ${C.border}`:`0.5px solid transparent`,boxShadow:scrolled?"0 1px 0 rgba(0,0,0,0.04)":"none",padding:"10px 16px 12px",transition:"background 0.2s ease, border-color 0.2s ease"}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
 <button onClick={()=>goTo(shift(selDate,-7))} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
 <span style={{fontSize:14,color:C.ink,fontWeight:600,letterSpacing:"-0.01em"}}>{wkLabel}</span>
@@ -1029,7 +1028,7 @@ const openDeleteSheet=(u)=>setActionSheet({type:"upsellDelete",u});
 const upProps={onOpenStatusSheet:openStatusSheet,onDelete:openDeleteSheet};
 
 const renderField=()=>(
-<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(120px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 120px - 49px - env(safe-area-inset-bottom))"}}>
 <div style={{margin:"0 16px 16px"}}>
 {selDay.isActive?(
 // UX-P4: Hero card הופך לaction sheet בלחיצה — מונע ביטול בטעות
@@ -1068,8 +1067,8 @@ const renderField=()=>(
 </button>
 </div>
 {selUpsells.length>0&&(
-<div style={{...card(),margin:"0 16px"}}>
-<label style={LBL}>הגדלות ({selUpsells.length})</label>
+<div style={{margin:"4px 16px 0"}}>
+<label style={{...LBL,marginBottom:8,paddingRight:4}}>הגדלות ביום זה · {selUpsells.length}</label>
 {selUpsells.map(u=><URow key={u.id} u={u} {...upProps}/>)}
 </div>
 )}
@@ -1079,7 +1078,7 @@ const renderField=()=>(
 const renderSummary=()=>{
 const allActive=data.upsells.filter(u=>!["paid","deferred_monthly","deferred_tuesday"].includes(u.status));
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{paddingTop:16,paddingBottom:"calc(120px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
 <div style={{background:C.ink,borderRadius:R.l,padding:"22px 24px",margin:"0 16px 16px",boxShadow:"0 8px 24px rgba(0,0,0,0.16)"}}>
 <div style={{fontSize:12,color:"rgba(255,255,255,0.65)",fontWeight:500,letterSpacing:"0.04em",marginBottom:8}}>
 סך הכל בחודש · {MONTH_HEB[_selM-1]} {_selY}
@@ -1094,8 +1093,8 @@ return(
 </div>
 <div style={{margin:"0 16px 12px"}}><MonthCal calYear={calYear} calMonth={calMonth} data={data} selDate={selDate} setModalDay={setModalDay} setCalYear={setCalYear} setCalMonth={setCalMonth}/></div>
 {allActive.length>0&&(
-<div style={{...card(),margin:"0 16px"}}>
-<label style={LBL}>הגדלות פעילות ({allActive.length})</label>
+<div style={{margin:"4px 16px 0"}}>
+<label style={{...LBL,marginBottom:8,paddingRight:4}}>הגדלות פעילות · {allActive.length}</label>
 {allActive.map(u=><URow key={u.id} u={u} {...upProps} showDate/>)}
 </div>
 )}
@@ -1115,56 +1114,66 @@ const cycleCommUpsells=data.upsells.filter(u=>
   ||(u.status==="deferred_tuesday"&&u.deferred_until===deliveryTuesday)
 );
 return(
-<div style={{paddingTop:16,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
-<div style={{margin:"0 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.white,borderRadius:14,padding:"12px 16px",boxShadow:C.shSm}}>
+<div style={{paddingTop:16,paddingBottom:"calc(120px + env(safe-area-inset-bottom))",minHeight:"calc(100dvh - 83px - env(safe-area-inset-top) - 46px - env(safe-area-inset-bottom))"}}>
+<div style={{margin:"0 16px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.surface,borderRadius:R.m,padding:"12px 14px",boxShadow:C.shSm,border:`1px solid ${C.borderSubtle}`}}>
 <button onClick={()=>goTo(shift(deliveryTuesday,-7))} style={{...BTNI(36),background:C.surfaceAlt,border:"none",color:C.inkSecondary}}><Icon name="chevronRight" size={16} strokeWidth={2.2}/></button>
 <div style={{textAlign:"center"}}>
-<div style={{fontSize:11,color:deliveryTuesday===TODAY?C.green:C.muted,fontWeight:700}}>{deliveryLbl}</div>
-<div style={{fontSize:14,fontWeight:700,color:C.navy}}>{cycleLabel}</div>
+<div style={{fontSize:11,color:deliveryTuesday===TODAY?C.success:C.inkTertiary,fontWeight:600,letterSpacing:"0.04em"}}>{deliveryLbl}</div>
+<div style={{fontSize:15,fontWeight:700,color:C.ink,letterSpacing:"-0.01em",marginTop:2}}>{cycleLabel}</div>
 </div>
 <button onClick={()=>{if(canFwd)goTo(shift(deliveryTuesday,7));}} style={{...BTNI(36),background:canFwd?C.surfaceAlt:"transparent",border:"none",color:canFwd?C.inkSecondary:C.inkQuaternary,cursor:canFwd?"pointer":"default"}}><Icon name="chevronLeft" size={16} strokeWidth={2.2}/></button>
 </div>
 {pendingRefs.length>0&&(
-<div style={{...card(),background:C.amberBg,border:`1px solid ${C.amberBdr}`,margin:"0 16px 12px"}}>
-<label style={{...LBL,color:C.amber}}>הפניות — למסור למנהל ({pendingRefs.length})</label>
+<div style={{background:C.warningSoft,border:`1px solid ${C.warning}33`,borderRadius:R.m,padding:"14px 14px 10px",margin:"0 16px 14px"}}>
+<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+<Icon name="phone" size={14} strokeWidth={2.2} color={C.warningDeep}/>
+<label style={{...LBL,color:C.warningDeep,margin:0}}>למסור למנהל ({pendingRefs.length})</label>
+</div>
 {pendingRefs.map(u=>(
-<div key={u.id} style={{background:C.white,borderRadius:10,padding:"12px 14px",marginBottom:8}}>
-{u.name&&<div style={{fontWeight:700,fontSize:15,color:C.navy,marginBottom:2}}>{u.name}</div>}
-<div style={{fontSize:18,color:C.amber,fontWeight:700,letterSpacing:1}}>{u.phone}</div>
-<div style={{fontSize:11,color:C.muted,marginTop:4}}>{dateObj(u.date).toLocaleDateString("he-IL")}</div>
+<div key={u.id} style={{background:C.surface,borderRadius:R.s+2,padding:"12px 14px",marginBottom:6}}>
+{u.name&&<div style={{fontWeight:600,fontSize:15,color:C.ink,marginBottom:4,letterSpacing:"-0.01em"}}>{u.name}</div>}
+<div style={{fontSize:17,color:C.ink,fontWeight:600,letterSpacing:1,direction:"ltr",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{u.phone}</div>
+<div style={{fontSize:11,color:C.inkTertiary,marginTop:4,fontWeight:500}}>{dateObj(u.date).toLocaleDateString("he-IL")}</div>
 </div>
 ))}
 </div>
 )}
-<div style={{...card(),margin:"0 16px 12px"}}>
+<div style={{background:C.surface,border:`1px solid ${C.borderSubtle}`,borderRadius:R.m,padding:"18px 18px 20px",margin:"0 16px 14px",boxShadow:C.shSm}}>
 <label style={LBL}>התחשבנות מחזור זה</label>
-<TRow label="מזומן שגבית מלקוחות" val={fmt(wkCash)} color={C.red} note="מסור למחסן"/>
-<div style={{height:1,background:C.border,margin:"16px 0"}}/>
-<TRow label="עמלות שמגיעות לך" val={`(${fmt(pendingComm)})`} color={C.green}/>
-<div style={{height:2,background:C.navy,margin:"16px 0",borderRadius:1}}/>
+<div style={{marginTop:6,marginBottom:14}}>
+<div style={{fontSize:11,color:C.inkTertiary,fontWeight:600,letterSpacing:"0.04em",marginBottom:4}}>מזומן שגבית מלקוחות <span style={{color:C.inkQuaternary,fontWeight:500}}>· מסור למחסן</span></div>
+<div style={{fontSize:24,fontWeight:700,color:C.danger,letterSpacing:"-0.02em"}}>{fmt(wkCash)}</div>
+</div>
+<div style={{height:0.5,background:C.border,margin:"14px 0"}}/>
+<div style={{marginBottom:14}}>
+<div style={{fontSize:11,color:C.inkTertiary,fontWeight:600,letterSpacing:"0.04em",marginBottom:4}}>עמלות שמגיעות לך</div>
+<div style={{fontSize:24,fontWeight:700,color:C.success,letterSpacing:"-0.02em"}}>({fmt(pendingComm)})</div>
+</div>
+<div style={{height:0.5,background:C.ink,opacity:0.2,margin:"16px 0 14px"}}/>
 <div>
-<label style={LBL}>{tuesdayNet>=0?"נטו — אתה מוסר למחסן":"נטו — המחסן חייב לך"}</label>
-<div style={{fontSize:40,fontWeight:900,color:tuesdayNet>=0?C.red:C.green,lineHeight:1}}>{fmt(Math.abs(tuesdayNet))}</div>
+<div style={{fontSize:11,color:C.inkTertiary,fontWeight:600,letterSpacing:"0.04em",marginBottom:6}}>{tuesdayNet>=0?"נטו · אתה מוסר למחסן":"נטו · המחסן חייב לך"}</div>
+<div style={{fontSize:38,fontWeight:700,color:tuesdayNet>=0?C.danger:C.success,letterSpacing:"-0.03em",lineHeight:1.1}}>{fmt(Math.abs(tuesdayNet))}</div>
 </div>
 </div>
 {cycleCommUpsells.length>0&&(
-<div style={{...card(),margin:"0 16px 12px"}}>
-<label style={{...LBL,color:C.green}}>עמלות במחזור זה — ניהול ({cycleCommUpsells.length})</label>
+<div style={{margin:"4px 16px 14px"}}>
+<label style={{...LBL,color:C.success,marginBottom:8,paddingRight:4}}>עמלות במחזור · {cycleCommUpsells.length}</label>
 {cycleCommUpsells.map(u=><URow key={u.id} u={u} {...upProps} showDate/>)}
 </div>
 )}
-<div style={{...card(),margin:"0 16px"}}>
+<div style={{background:C.surface,border:`1px solid ${C.borderSubtle}`,borderRadius:R.m,padding:"14px 16px 6px",margin:"0 16px",boxShadow:C.shSm}}>
 <label style={LBL}>פירוט ימי המחזור</label>
-{deliveryCycle.map(d=>{
+{deliveryCycle.map((d,idx)=>{
 const wd=data.workDays[d];if(!wd?.isActive)return null;
 const comm=data.upsells.filter(u=>u.date===d&&u.status==="paid").reduce((s,u)=>s+(u.commission||0),0);
 const dayTotal=BASE+(wd.tips||0)+(wd.bonus||0)+comm;
+const isLastActive=!deliveryCycle.slice(idx+1).some(dx=>data.workDays[dx]?.isActive);
 return(
-<div key={d} style={{padding:"12px 0",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<div style={{fontSize:14,color:C.navy,fontWeight:500}}>{dateObj(d).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"numeric"})}</div>
+<div key={d} style={{padding:"14px 0",borderBottom:isLastActive?"none":`0.5px solid ${C.divider}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+<div style={{fontSize:14,color:C.ink,fontWeight:500,letterSpacing:"-0.005em"}}>{dateObj(d).toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"numeric"})}</div>
 <div style={{textAlign:"left"}}>
-<div style={{fontSize:15,fontWeight:700,color:C.green}}>{fmt(dayTotal)}</div>
-<div style={{fontSize:11,color:C.muted}}>{fmt(BASE)}{wd.tips>0&&` +${fmt(wd.tips)}`}</div>
+<div style={{fontSize:16,fontWeight:700,color:C.success,letterSpacing:"-0.01em"}}>{fmt(dayTotal)}</div>
+<div style={{fontSize:11,color:C.inkTertiary,fontWeight:500,marginTop:1}}>{fmt(BASE)}{wd.tips>0&&` + ${fmt(wd.tips)} טיפים`}</div>
 </div>
 </div>
 );
@@ -1325,7 +1334,7 @@ return(
 {(pullDist>0||refreshing)&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top) + 8px)",left:"50%",transform:`translateX(-50%) translateY(${refreshing?0:Math.min(60,pullDist*0.6)-32}px)`,zIndex:200,width:36,height:36,borderRadius:"50%",background:`rgba(255,255,255,0.94)`,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",boxShadow:"0 4px 12px rgba(0,0,0,0.12)",display:"flex",alignItems:"center",justifyContent:"center",transition:refreshing?"transform 0.2s ease":"none",opacity:Math.min(1,pullDist/60)+(refreshing?1:0)}}>
   <div style={{width:18,height:18,borderRadius:"50%",border:`2.5px solid ${C.brand}`,borderTopColor:"transparent",animation:refreshing?"spin 0.8s linear infinite":"none",transform:!refreshing?`rotate(${pullDist*3}deg)`:"none"}}/>
 </div>}
-<div className="sticky-stack" style={{background:scrolled?`rgba(245,245,247,0.85)`:C.bg,backdropFilter:scrolled?"blur(20px) saturate(180%)":"none",WebkitBackdropFilter:scrolled?"blur(20px) saturate(180%)":"none",borderBottom:scrolled?`0.5px solid ${C.border}`:`0.5px solid transparent`,paddingTop:"calc(10px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",transition:"background 0.2s ease, border-color 0.2s ease"}}>
+<div className="sticky-stack" style={{background:scrolled?`rgba(245,245,247,0.92)`:C.bg,backdropFilter:scrolled?"blur(24px) saturate(180%)":"none",WebkitBackdropFilter:scrolled?"blur(24px) saturate(180%)":"none",borderBottom:scrolled?`0.5px solid ${C.border}`:`0.5px solid transparent`,boxShadow:scrolled?"0 1px 0 rgba(0,0,0,0.04)":"none",paddingTop:"calc(10px + env(safe-area-inset-top))",paddingBottom:"10px",paddingLeft:"calc(20px + env(safe-area-inset-left))",paddingRight:"calc(20px + env(safe-area-inset-right))",transition:"background 0.2s ease, border-color 0.2s ease"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
 <img src="/apple-touch-icon.png" style={{width:36,height:36,borderRadius:10,objectFit:"cover",flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.08)"}}/>
